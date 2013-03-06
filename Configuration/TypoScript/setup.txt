@@ -1,0 +1,4 @@
+module.tx_damfalmigration {
+	settings {
+	}
+}

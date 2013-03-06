@@ -1,0 +1,101 @@
+<f:layout name="Backend" />
+
+<f:section name="Content">
+<div class="section">
+	<h2 style="margin-bottom: 0;">Update your system to TYPO3 6.0</h2>
+	<p><em>This module guides you through the upgrading process of TYPO3 6.0 and the file references.</em></p>
+	<p>In previous versions of TYPO3, the <em>fileadmin/</em> directory contained all files that you handle on your own, and the "uploads/* folder all files that were uploaded within the backend forms (like news images etc).</p>
+	<p>Before TYPO3 6.0, you could reference files by just linking on "fileadmin/myFolder/myFile.jpg". Now, the system saves more information about a file in the database in a table called sys_file. Each container (may it be a local folder or a remote server) is called a storage (DB table "sys_file_storage"). Each file is inside one container. By default, TYPO3 6.0 adds a default container called "fileadmin", representing the previous "main folder" of the installation.</p>
+</div>
+
+<div class="section">
+	<h2 style="margin-bottom: 0;">1. Create an index of all "fileadmin/" files</h2>
+	<p>The first storage "fileadmin/" is already added and put on the root level of the TYPO3 installation. Every file inside "fileadmin/" is already inside the folder structure, but not in the database yet. A separate scheduler task called "Index" needs to completely run through the folder structure.</p>
+	<br />
+	<div class="typo3-messages">
+		<f:if condition="{indexedFilesInMainStorage}">
+		<f:then>
+			<div class="typo3-message message-information">
+				<h5>There are currently {indexedFilesInMainStorage} indexed files in fileadmin/</h5>
+				<p>If you are confident that these are all files within the folder structure. If so, you are done with step 1.</p>
+			</div>
+		</f:then>
+		<f:else>
+			<div class="typo3-message message-error">
+				<h5>There are currently no indexed files in fileadmin/</h5>
+				<p>Please make sure to run the scheduler task before proceeding wiht any other step.</p>
+			</div>
+		</f:else>
+		</f:if>
+	</div>
+</div>
+
+<div class="section">
+	<h2 style="margin-bottom: 0;">2. Make "uploads/*" obsolete</h2>
+	<p>Files that were used within the TCA (type=group, internal_type=file), in DB fields like <strong>pages:media</strong>, <strong>tt_content:image</strong> or <strong>tt_content:media</strong> are usually uploaded to "uploads/pics" or "uploads/media" of the TYPO3 installation. Additionally, if the same is uploaded on multiple occurences, they are stored twice on the file system.</p>
+
+	<h3>2a. Migrate Core TCA fields to file reference selectors</h3>
+	<p>You can migrate the TCA file fields of the TYPO3 Core to the new "FAL-way". There is a upgrade wizard in the Install Tool, where you can move all the files from "uploads/*" to "fileadmin/migrated_/*", optionally checking if the file already exists in the storage (based on the SHA1 file hash).</p> 
+	<br />
+	<div class="typo3-messages">
+		<f:if condition="{f:count(subject: migratedFileFields)}">
+		<f:then>
+			<div class="typo3-message message-ok">
+				<h5>You have migrated the TCA file fields of the TYPO3 Core to the new file reference system.</h5>
+				<p>This step is done. You can double-check what happened to the files themselves, if you see the files populated within "fileadmin/_migrated/". You can also safely remove the uploads/ subfolders if they are either empty or not in use anymore (old, unreferenced files).<br /><em>Please note: You might have to go through your TypoScript and PHP-Code in order to reference the right files now.</p>
+				<p>The following fields are migrated:</p>
+				<ul>
+					<f:for each="{migratedFileFields}" as="field">
+					<li>{field}</li>
+					</f:for>
+				</ul>
+			</div>
+		</f:then>
+		<f:else>
+			<div class="typo3-message message-error">
+				<h5>No update wizard run yet.</h5>
+				<p>Please run the according update wizard XYZ in the Install Tool to perform the actions necessary for this migration step.</p>
+			</div>
+		</f:else>
+		</f:if>
+	</div>
+	<br />
+
+	<h3>2b. Migrate files from uploads/* of other extensions</h3>
+	<p>There might be extensions like tt_news, or extensions that have TCA (type=group, internal_type=file)</p>
+	<p>TODO: List them here</p>
+</div>
+
+<f:if condition="{isDAMloaded}">
+<div class="section">
+	<h2 style="margin-bottom: 0;">3. DAM migration</h2>
+	<h3>3a. Connect DAM records to FAL records</h3>
+	<p>Now that all used files have been moved to fileadmin/*, and have a new sys_file UID (FAL-ID), you can connect them with the existing DAM records (with their tx_dam UID).</p>
+	<h3>3b: Migrate DAM tt_content / DAM tt_news (dam_ttcontent, dam_ttnews)</h3>
+	<h3>3c: Migrate all "DAM Frontend" Plugins (dam_frontend)</h3>
+	<h3>TODO: 3d: Migrate DAM Frontend Download list plugins (dam_filelist)</h3>
+</div>
+</f:if>
+
+<div class="section">
+	<h2 style="margin-bottom: 0;">4: Migrate all references in the RTE</h2>
+	<h3>4c. RTE - Migrate all Magic Images from uploads/* to fileadmin/_rte</h3>
+	<p>Check if we have magic images and see if we need to do something.</p>
+	<h3>4a: What about magic images?</h3>
+	<h3>4b: What about DAM references?</h3>
+	<p>Make sure DAM is deinstalled</p>
+</div>
+
+<div class="section">
+	<h2 style="margin-bottom: 0;">5: Check the frontend output</h2>
+	<p>TODO: Migrate TypoScript with hardcoded levelmedia, page:media AND IMAGE elements</p>
+</div>
+
+TODO: Uninstall DAM etc?
+
+<div class="section">
+	<h2 style="margin-bottom: 0;">6: Migrate to other Storage / Driver</h2>
+	<p>TODO: How do we handle preview images / thumbnails. Should be deleted and re-generated</p>
+</div>
+
+</f:section>
