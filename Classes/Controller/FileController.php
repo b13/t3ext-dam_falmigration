@@ -48,7 +48,7 @@ class FileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionController 
 		$this->view->assign('indexedFilesInMainStorage', $indexedFilesInMainStorage);
 
 
-		$migratedFileFields = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(',', $GLOBALS['TYPO3_CONF_VARS']['INSTALL']['wizardDone']['Tx_Install_Updates_File_TceformsUpdateWizard'], TRUE);
+		$migratedFileFields = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(',', $GLOBALS['TYPO3_CONF_VARS']['INSTALL']['wizardDone']['TYPO3\CMS\Install\Updates\TceformsUpdateWizard'], TRUE);
 		$this->view->assign('migratedFileFields', $migratedFileFields);
 
 
