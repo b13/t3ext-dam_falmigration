@@ -1,4 +1,5 @@
 <?php
+namespace TYPO3\CMS\DamFalmigration\Task;
 /***************************************************************
  *  Copyright notice
  *
@@ -31,7 +32,7 @@
  * @author      Benjamin Mack <benni@typo3.org>
  *
  */
-class tx_damfalmigration_task_migraterelationstask extends tx_scheduler_task {
+class MigrateRelationsTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 
 	/**
 	 * main function, needs to return TRUE or FALSE in order to tell

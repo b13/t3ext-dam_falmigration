@@ -1,6 +1,5 @@
 <?php
-namespace TYPO3\CMS\DamFalmgiration\Task;
-
+namespace TYPO3\CMS\DamFalmigration\Task;
 /***************************************************************
  *  Copyright notice
  *
@@ -38,7 +37,7 @@ namespace TYPO3\CMS\DamFalmgiration\Task;
  * @author      Benjamin Mack <benni@typo3.org>
  *
  */
-class tx_damfalmigration_task_migratetask extends tx_scheduler_task {
+class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 
 		// the storage object for the fileadmin
 	protected $storageUid = 1;
@@ -85,7 +84,7 @@ class tx_damfalmigration_task_migratetask extends tx_scheduler_task {
 
 			// DB-query to update all info
 		/** @var $fileRepository t3lib_file_Repository_FileRepository */
-		$fileRepository = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('\\TYPO3\\CMS\\Core\\Resource\\ResourceRepository');
+		$fileRepository = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Resource\\FileRepository');
 
 		$migratedFiles = 0;
 
@@ -101,7 +100,8 @@ class tx_damfalmigration_task_migratetask extends tx_scheduler_task {
 
 				// check if the DAM record is already indexed for FAL (based on the filename)
 				$fileObject = $storageObject->getFile($fullFileName);
-				if ($fileObject instanceof t3lib_File_AbstractFile) {
+				
+				if ($fileObject instanceof TYPO3\CMS\Core\Resource\File) {
 
 					// add the migrated uid of the DAM record to the FAL record
 					$updateData = array(
