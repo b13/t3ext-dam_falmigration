@@ -100,9 +100,8 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 
 				// check if the DAM record is already indexed for FAL (based on the filename)
 				$fileObject = $storageObject->getFile($fullFileName);
-				
-				if ($fileObject instanceof TYPO3\CMS\Core\Resource\File) {
 
+				if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
 					// add the migrated uid of the DAM record to the FAL record
 					$updateData = array(
 						'_migrateddamuid' => $damUid
@@ -138,8 +137,8 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 			$message = 'All files have been migrated.';
 		}
 
-		$messageObject = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('t3lib_FlashMessage', $message, $headline);
-		t3lib_FlashMessageQueue::addMessage($messageObject);
+		$messageObject = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
+		\TYPO3\CMS\Core\Messaging\FlashMessageQueue::addMessage($messageObject);
 
 			// it was always a success
 		return TRUE;
