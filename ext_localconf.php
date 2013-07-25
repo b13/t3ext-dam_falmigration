@@ -23,5 +23,11 @@ if (TYPO3_MODE == 'BE') {
 		'description'      => 'Migrates all available DAM frontend plugins, and replaces them with tt_content uploads elements.',
 	);
 
+	$TYPO3_CONF_VARS['SC_OPTIONS']['scheduler']['tasks']['TYPO3\\CMS\\DamFalmigration\\Task\\MigrateDamSelectionsTask'] = array(
+		'extension'        => $_EXTKEY,
+		'title'            => 'DAM-FAL Migration: Migrate DAM Selections',
+		'description'      => 'Migrates all available DAM Selections in sys_file_collections (only folder based selections for now).',
+	);
+
 }
 
