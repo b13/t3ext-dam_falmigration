@@ -28,6 +28,12 @@ if (TYPO3_MODE == 'BE') {
 		'title'            => 'DAM-FAL Migration: Migrate DAM Selections',
 		'description'      => 'Migrates all available DAM Selections in sys_file_collections (only folder based selections for now).',
 	);
+	$TYPO3_CONF_VARS['SC_OPTIONS']['scheduler']['tasks']['TYPO3\\CMS\\DamFalmigration\\Task\\MigrateDamCategoriesTask'] = array(
+		'extension'        => $_EXTKEY,
+		'title'            => 'DAM-FAL Migration: Migrate DAM Categories',
+		'description'      => 'Migrates all available DAM Categories in sys_category (only default language categories for now).',
+		'additionalFields' => 'TYPO3\\CMS\\DamFalmigration\\Task\\MigrationDamCategoriesAdditionalFieldProvider',
+	);
 
 }
 
