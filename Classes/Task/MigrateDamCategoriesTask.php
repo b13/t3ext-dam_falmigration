@@ -3,7 +3,7 @@ namespace TYPO3\CMS\DamFalmigration\Task;
 /***************************************************************
  *  Copyright notice
  *
- *  (c) 2012 Benjamin Mack <benni@typo3.org>
+ *  (c) 2013 Alexander Boehm <boehm@punkt.de>
  *  All rights reserved
  *
  *  This script is part of the TYPO3 project. The TYPO3 project is
@@ -26,15 +26,14 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 /**
- * Scheduler Task to Migrate Records
- * Finds all DAM records that have not been migrated yet
- * and adds a DB field "_migrateddamuid" to each FAL record
- * to connect the DAM and FAL DB records
+ * Scheduler Task to Migrate Categories
+ * Finds all DAM categories and adds a DB field "_migrateddamcatuid"
+ * to each category record
  *
- * currently it only works for files within the fileadmin
- * FILES DON'T GET MOVED somewhere else
+ * currently it does not take care of the sys_language_uid, so all categories
+ * get default language uid.
  *
- * @author      Benjamin Mack <benni@typo3.org>
+ * @author      Alexander Boehm <boehm@punkt.de>
  *
  */
 class MigrateDamCategoriesTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
@@ -60,27 +59,50 @@ class MigrateDamCategoriesTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	 */
 	public function execute() {
 
-		// STEP 1 - Get all categories
-		$damCategories = $this->getAllDamCategories();
+		$migratedCategories = 0;
 
 		// $parrentUidMap[oldUid] = 'newUid';
 		$parentUidMap = array();
+		if($this->initialParentUid > 0 && !$this->checkInitialParentAvailable()) {
+			$this->initialParentUid = 0;
+		}
 		$parentUidMap[0] = $this->initialParentUid;
 
-		// STEP 2 - resort categorie array!!!
+
+
+		//******** STEP 1 - Get all categories *********//
+		$damCategories = $this->getAllDamCategories();
+
+
+		//******** STEP 2 - resort categorie array *********//
 		$damCategories = $this->sortingCategories($damCategories, 0);
-		//var_dump($damCategories);die();
 
 
-		// STEP 3 - Build categorie tree
+
+		//******** STEP 3 - Build categorie tree *********//
 		foreach($damCategories as $category) {
 
 			$newParentUid = $parentUidMap[$category['parent_id']];
 
+			//here the new category gets createt in table sys_category
 			$newUid = $this->createNewCategory($category, $newParentUid);
 
 			$parentUidMap[$category['uid']] = $newUid;
+			$migratedCategories++;
 		}
+
+		//******** STEP 4 - Finished, do output *********//
+		// print a message
+		if ($migratedCategories > 0) {
+			$headline = 'Migration successful';
+			$message = 'Migrated ' . $migratedCategories . ' categories.';
+		} else {
+			$headline = 'Migration not necessary';
+			$message = 'All categories have been migrated.';
+		}
+
+		$messageObject = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
+		\TYPO3\CMS\Core\Messaging\FlashMessageQueue::addMessage($messageObject);
 
 
 			// it was always a success
@@ -121,7 +143,8 @@ class MigrateDamCategoriesTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 			'pid' => $this->storageUid,
 			'title' => $record['title'],
 			'description' => $record['description'],
-			'parent' => $newParentUid
+			'parent' => $newParentUid,
+			'_migrateddamcatuid' => $record['uid']
 		);
 
 		$GLOBALS['TYPO3_DB']->exec_INSERTquery('sys_category', $sysCategory);
@@ -169,6 +192,26 @@ class MigrateDamCategoriesTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 		}
 
 		return $sortedDamCategories;
+	}
+
+
+	/**
+	 * Checks if the wanted parent uid is available.
+	 *
+	 * @return bool
+	 */
+	protected function checkInitialParentAvailable(){
+		$select = 'uid';
+		$from = 'sys_category';
+		$where = 'deleted = 0';
+
+		$parentUidResult = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($select,$from,$where);
+
+		if(count($parentUidResult) > 0){
+			return TRUE;
+		} else {
+			return FALSE;
+		}
 	}
 
 }
