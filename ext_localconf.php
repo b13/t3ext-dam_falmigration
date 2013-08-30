@@ -35,5 +35,11 @@ if (TYPO3_MODE == 'BE') {
 		'additionalFields' => 'TYPO3\\CMS\\DamFalmigration\\Task\\MigrationDamCategoriesAdditionalFieldProvider',
 	);
 
+	$TYPO3_CONF_VARS['SC_OPTIONS']['scheduler']['tasks']['TYPO3\\CMS\\DamFalmigration\\Task\\MigrateDamCategoryRelationsTask'] = array(
+		'extension'        => $_EXTKEY,
+		'title'            => 'DAM-FAL Migration: Migrate DAM Category Relations',
+		'description'      => 'Migrates all Relations between DAM Categories and DAM files to FAL Files and Category.',
+	);
+
 }
 
