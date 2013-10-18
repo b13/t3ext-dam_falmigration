@@ -1,28 +1,29 @@
 <?php
 namespace TYPO3\CMS\DamFalmigration\Task;
 
-	/***************************************************************
-	 *  Copyright notice
-	 *
-	 *  (c) 2009-2013 Alexander Boehm <boehm@punkt.de>
-	 *  All rights reserved
-	 *
-	 *  This script is part of the TYPO3 project. The TYPO3 project is
-	 *  free software; you can redistribute it and/or modify
-	 *  it under the terms of the GNU General Public License as published by
-	 *  the Free Software Foundation; either version 2 of the License, or
-	 *  (at your option) any later version.
-	 *
-	 *  The GNU General Public License can be found at
-	 *  http://www.gnu.org/copyleft/gpl.html.
-	 *
-	 *  This script is distributed in the hope that it will be useful,
-	 *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-	 *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	 *  GNU General Public License for more details.
-	 *
-	 *  This copyright notice MUST APPEAR in all copies of the script!
-	 ***************************************************************/
+/***************************************************************
+ *  Copyright notice
+ *
+ *  (c) 2009-2013 Alexander Boehm <boehm@punkt.de>
+ *  All rights reserved
+ *
+ *  This script is part of the TYPO3 project. The TYPO3 project is
+ *  free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  The GNU General Public License can be found at
+ *  http://www.gnu.org/copyleft/gpl.html.
+ *
+ *  This script is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  This copyright notice MUST APPEAR in all copies of the script!
+ ***************************************************************/
+
 /**
  * Additional BE fields for Migration Dam Categories task.
  * Adds field to enter the new starting parent uid for the categories.
@@ -31,7 +32,6 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  */
 class MigrationDamCategoriesAdditionalFieldProvider implements \TYPO3\CMS\Scheduler\AdditionalFieldProviderInterface {
 
-
 	/**
 	 * Default initial parent uid for migrated dam categories
 	 *
@@ -39,11 +39,7 @@ class MigrationDamCategoriesAdditionalFieldProvider implements \TYPO3\CMS\Schedu
 	 */
 	protected $defaultInitialParentUid = 0;
 
-
 	/**
-	 *
-	 *
-	 *
 	 * @param array $taskInfo Reference to the array containing the info used in the add/edit form
 	 * @param object $task When editing, reference to the current task object. Null when adding.
 	 * @param \TYPO3\CMS\Scheduler\Controller\SchedulerModuleController $parentObject Reference to the calling object (Scheduler's BE module)
@@ -101,6 +97,4 @@ class MigrationDamCategoriesAdditionalFieldProvider implements \TYPO3\CMS\Schedu
 	}
 
 }
-
-
 ?>

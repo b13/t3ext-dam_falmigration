@@ -1,5 +1,6 @@
 <?php
 namespace TYPO3\CMS\DamFalmigration\Task;
+
 /***************************************************************
  *  Copyright notice
  *
@@ -25,6 +26,7 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+
 /**
  * Scheduler Task to Migrate Categories
  * Finds all DAM categories and adds a DB field "_migrateddamcatuid"
@@ -41,7 +43,6 @@ class MigrateDamCategoryRelationsTask extends \TYPO3\CMS\Scheduler\Task\Abstract
 	// the storage pid for the categories
 	protected $storageUid = 1;
 
-
 	/**
 	 * Defined parent uid if the migrated categories should not be under
 	 * category root
@@ -49,7 +50,6 @@ class MigrateDamCategoryRelationsTask extends \TYPO3\CMS\Scheduler\Task\Abstract
 	 * @var int parent uid
 	 */
 	public $initialParentUid = 0;
-
 
 	/**
 	 * main function, needs to return TRUE or FALSE in order to tell
@@ -70,12 +70,10 @@ class MigrateDamCategoryRelationsTask extends \TYPO3\CMS\Scheduler\Task\Abstract
 		 *
 		 */
 
-
 		//******** STEP 1 *********//
 		// get all FAL records that are there, that have been migrated already
 		// seen by the "_migrateddamuid" flag
 		$migratedRecords = $this->getAllMigratedDamRecords();
-
 
 		//******** STEP 2 *********//
 		// get all entries from dam_cat_mm with given local_uid
@@ -83,12 +81,10 @@ class MigrateDamCategoryRelationsTask extends \TYPO3\CMS\Scheduler\Task\Abstract
 		$additionalWhere = implode(',',$damUids);
 		$damMMEntries = $this->getAllDamMMCatEntries($additionalWhere);
 
-
 		//******** STEP 3 *********//
 		// get all FAL records that are there, that have been migrated already
 		// seen by the "_migrateddamuid" flag
 		$migratedCategories = $this->getAllMigratedDamCategories();
-
 
 		//******** STEP 4 *********//
 		// add new file to cat relations
@@ -109,7 +105,6 @@ class MigrateDamCategoryRelationsTask extends \TYPO3\CMS\Scheduler\Task\Abstract
 			}
 		}
 
-
 		//******** STEP 4 - Finished, do output *********//
 		// print a message
 		/*if ($migratedCategories > 0) {
@@ -127,7 +122,6 @@ class MigrateDamCategoryRelationsTask extends \TYPO3\CMS\Scheduler\Task\Abstract
 			// it was always a success
 		return TRUE;
 	}
-
 
 	/**
 	 * Gets all available (not deleted) migrated DAM categories.
@@ -148,11 +142,9 @@ class MigrateDamCategoryRelationsTask extends \TYPO3\CMS\Scheduler\Task\Abstract
 		return $migratedCategories;
 	}
 
-
 	/**
 	 * Gets all available (not deleted) migrated DAM records.
 	 * Returns array with all records.
-	 *
 	 *
 	 * @return mixed
 	 */
@@ -168,11 +160,9 @@ class MigrateDamCategoryRelationsTask extends \TYPO3\CMS\Scheduler\Task\Abstract
 		return $migratedRecords;
 	}
 
-
 	/**
 	 * Gets all dam_mm_cat entries.
 	 * Returns array with all records.
-	 *
 	 *
 	 * @param $damUids  A list of dam uids, seperated with ','
 	 * @return mixed
@@ -242,7 +232,6 @@ class MigrateDamCategoryRelationsTask extends \TYPO3\CMS\Scheduler\Task\Abstract
 		$where = 'deleted=0 AND uid=' . $fileUid;
 
 		$currentCategoriesValue = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($select,$from,$where);
-
 
 		$updateValues = array(
 			'categories' => $currentCategoriesValue[0]['categories'] +1

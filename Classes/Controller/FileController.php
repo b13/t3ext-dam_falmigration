@@ -25,13 +25,13 @@ namespace TYPO3\CMS\DamFalmigration\Controller;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+
 /**
  * Show information about the current status of the file migration
  *
  * @author Benjamin Mack <benni@typo3.org>
  */
 class FileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionController {
-
 
 	/**
 	 * shows an overview of the current status of the File migration
@@ -57,6 +57,3 @@ class FileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionController 
 	}
 
 }
-
-
-?>

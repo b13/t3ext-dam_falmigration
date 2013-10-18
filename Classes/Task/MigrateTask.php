@@ -1,5 +1,6 @@
 <?php
 namespace TYPO3\CMS\DamFalmigration\Task;
+
 /***************************************************************
  *  Copyright notice
  *
@@ -25,6 +26,12 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
+use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
+
 /**
  * Scheduler Task to Migrate Records
  * Finds all DAM records that have not been migrated yet
@@ -34,126 +41,205 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  * currently it only works for files within the fileadmin
  * FILES DON'T GET MOVED somewhere else
  *
- * @author      Benjamin Mack <benni@typo3.org>
- *
+ * @author Benjamin Mack <benni@typo3.org>
  */
 class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 
-		// the storage object for the fileadmin
+	/**
+	 * @var \TYPO3\CMS\Extbase\Object\ObjectManager
+	 */
+	protected $objectManager;
+
+	/**
+	 * @var \TYPO3\CMS\Core\Resource\FileRepository
+	 */
+	protected $fileRepository;
+
+	/**
+	 * @var \TYPO3\CMS\Core\Resource\ResourceStorage
+	 */
+	protected $storageObject;
+
+	/**
+	 * @var integer the storage uid for fileadmin
+	 */
 	protected $storageUid = 1;
+
+	/**
+	 * @var integer amount of migrated files
+	 */
+	protected $amountOfMigratedFiles = 0;
+
+	/**
+	 * initializes this object
+	 */
+	protected function init() {
+		$this->objectManager = GeneralUtility::makeInstance('TYPO3\\CMS\\Extbase\\Object\\ObjectManager');
+		$this->fileRepository = $this->objectManager->get('TYPO3\\CMS\\Core\\Resource\\FileRepository');
+		$fileFactory = ResourceFactory::getInstance();
+		$this->storageObject = $fileFactory->getStorageObject($this->storageUid);
+	}
 
 	/**
 	 * main function, needs to return TRUE or FALSE in order to tell
 	 * the scheduler whether the task went through smoothly
 	 *
+	 * @throws \TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException
+	 * @throws \Exception
 	 * @return boolean
 	 */
 	public function execute() {
+		$this->init();
 
-			// check for all FAL records that are there, that have been migrated already
-			// seen by the "_migrateddamuid" flag
-		$migratedRecords = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
-			'uid, _migrateddamuid AS damuid',
-			'sys_file',
-			'_migrateddamuid>0',
-			'',	// group by
-			'', // order by
-			'', // limit
-			'damuid'
-		);
-
-			// exclude the already migrated DAM records
-		if (count($migratedRecords)) {
-			$migratedUids = array_keys($migratedRecords);
-			$additionalWhereClause = ' AND uid NOT IN (' . implode(',', $migratedUids) . ')';
-		} else {
-			$additionalWhereClause = '';
-		}
-
-		$fileFactory = \TYPO3\CMS\Core\Resource\ResourceFactory::getInstance();
-
-			// create the storage object
-		$storageObject = $fileFactory->getStorageObject($this->storageUid);
-
-			// DB-query to update all info
-		/** @var $fileRepository t3lib_file_Repository_FileRepository */
-		$fileRepository = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Resource\\FileRepository');
-
-		$migratedFiles = 0;
-		$newFalRecords = array();
-
-		// get all DAM records that have not been migrated yet
-		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-			'*',
-			'tx_dam',
-			'deleted=0 ' . $additionalWhereClause
-		);
-		while ($damRecord = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
-
-			$damUid = $damRecord['uid'];
-			$fileIdentifier = $damRecord['file_path'] . $damRecord['file_name'];
-
-			// right now we only support files in fileadmin/
-			if (\TYPO3\CMS\Core\Utility\GeneralUtility::isFirstPartOfStr($fileIdentifier, 'fileadmin/') === TRUE) {
-				// strip away the "fileadmin/" prefix
-				echo 'Indexing ' . $fileIdentifier . CRLF;
-				$fullFileName = substr($fileIdentifier, 10);
-
-				// check if the DAM record is already indexed for FAL (based on the filename)
-				try {
-					$fileObject = $storageObject->getFile($fullFileName);
-				} catch(\TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException $e) {
-					// file not found jump to next file
-					continue;
-				} catch(\Exception $e) {
-					echo 'File not found: ' . $fullFileName . CRLF;
-				}
-
-				if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
-					// add the migrated uid of the DAM record to the FAL record
-					$updateData = array(
-						'_migrateddamuid' => $damUid
-					);
-
-					// also add meta data to the FAL record
-					if (\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::isLoaded('media')) {
-						$updateData['keywords']    = $damRecord['keywords'];
-						$updateData['description'] = $damRecord['description'];
-						$updateData['location_country'] = $damRecord['location_country'];
+		if (ExtensionManagementUtility::isLoaded('dam')) {
+			$rows = $this->getNotMigratedDamRecords();
+			foreach ($rows as $damRecord) {
+				if ($this->isValidDirectory($damRecord)) {
+					try {
+						$fileObject = $this->storageObject->getFile($this->getFullFileName($damRecord));
+						if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
+							$this->migrateFileFromDamToFal($damRecord, $fileObject);
+							$this->amountOfMigratedFiles++;
+						}
+					} catch(\Exception $e) {
+						// If file is not found
+						continue;
 					}
-
-					$uid = $fileObject->getUid();
-					$GLOBALS['TYPO3_DB']->exec_UPDATEquery(
-						'sys_file',
-						'uid=' . $uid,
-						$updateData
-					);
-					$migratedFiles++;
-
-
-				} else {
-					// no file object
-					// what to do?
 				}
 			}
-		}
-
-			// print a message
-		if ($migratedFiles > 0) {
-			$headline = 'Migration successful';
-			$message = 'Migrated ' . $migratedFiles . ' files.';
+			// mark task as successful executed
+			return TRUE;
 		} else {
-			$headline = 'Migration not necessary';
-			$message = 'All files have been migrated.';
+			throw new \Exception('Extension tx_dam is not installed. So there is nothing to migrate.');
+		}
+	}
+
+	/**
+	 * checks if file identifier is in a valid directory
+	 * For now we check only for fileadmin directory
+	 *
+	 * @param array $damRecord
+	 * @return bool
+	 */
+	protected function isValidDirectory(array $damRecord) {
+		return GeneralUtility::isFirstPartOfStr($this->getFileIdentifier($damRecord), 'fileadmin/');
+	}
+
+	/**
+	 * get comma separated list of already migrated dam records
+	 * This method checked this with help of col: _migrateddamuid
+	 *
+	 * @return string
+	 */
+	protected function getUidListOfAlreadyMigratedRecords() {
+		list($migratedRecords) = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+			'GROUP_CONCAT( uid ) AS uidList',
+			'sys_file',
+			'_migrateddamuid > 0 AND deleted = 0'
+		);
+		if (!empty($migratedRecords['uidList'])) {
+			return $migratedRecords;
+		} else return '';
+	}
+
+	/**
+	 * this method generates an additional where clause to find all dam records
+	 * which were not already migrated
+	 *
+	 * @return string
+	 */
+	protected function getAdditionalWhereClauseForNotMigratedDamRecords() {
+		$uidList = $this->getUidListOfAlreadyMigratedRecords();
+		if ($uidList) {
+			$additionalWhereClause = 'AND uid NOT IN (' . $uidList . ')';
+		} else $additionalWhereClause = '';
+		return $additionalWhereClause;
+	}
+
+	/**
+	 * get all dam records which have not been migrated yet
+	 *
+	 * @return array
+	 */
+	protected function getNotMigratedDamRecords() {
+		$rows = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+			'*',
+			'tx_dam',
+			'deleted = 0 ' . $this->getAdditionalWhereClauseForNotMigratedDamRecords()
+		);
+
+		return $rows;
+	}
+
+	/**
+	 * create file identifier from dam record
+	 *
+	 * @param array $damRecord
+	 * @return string
+	 */
+	protected function getFileIdentifier(array $damRecord) {
+		return $damRecord['file_path'] . $damRecord['file_name'];
+	}
+
+	/**
+	 * remove storage name from fileIdentifier
+	 *
+	 * @param $damRecord
+	 * @return mixed
+	 */
+	protected function getFullFileName($damRecord) {
+		// maybe substr is faster but as long as fileadmin directory is configurable in installtool I think str_replace is better
+		return str_replace('fileadmin/', '', $this->getFileIdentifier($damRecord));
+	}
+
+	/**
+	 * add flashmessage if migration was successful or not.
+	 *
+	 * @return void
+	 */
+	protected function addResultMessage() {
+		if ($this->amountOfMigratedFiles > 0) {
+			$headline = LocalizationUtility::translate('migrationSuccessful', 'dam_falmigration');
+			$message = LocalizationUtility::translate('migratedFiles', 'dam_falmigration', array(0 => $this->amountOfMigratedFiles));
+		} else {
+			$headline = LocalizationUtility::translate('migrationNotNecassary', 'dam_falmigration');;
+			$message = LocalizationUtility::translate('allFilesMigrated', 'dam_falmigration');
 		}
 
-		if (!TYPO3_cliMode) {
-			$messageObject = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
-			\TYPO3\CMS\Core\Messaging\FlashMessageQueue::addMessage($messageObject);
+		$messageObject = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
+		// addMessage is a magic method realized by __call()
+		FlashMessageQueue::addMessage($messageObject);
+	}
+
+	/**
+	 * migrate file from dam record to fal system
+	 *
+	 * @param array $damRecord
+	 * @param \TYPO3\CMS\Core\Resource\File $fileObject
+	 * @return void
+	 */
+	protected function migrateFileFromDamToFal(array $damRecord, \TYPO3\CMS\Core\Resource\File $fileObject) {
+		// add the migrated uid of the DAM record to the FAL record
+		$updateData = array(
+			'_migrateddamuid' => $damRecord['uid']
+		);
+
+		// also add meta data to the FAL record
+		if (ExtensionManagementUtility::isLoaded('filemetadata')) {
+			// see script of CK in Installtool for migration sys_file -> sys_file_metadata
+			$updateData['keywords'] = $damRecord['keywords'];
+			$updateData['description'] = $damRecord['description'];
+			$updateData['location_country'] = $damRecord['loc_country'];
 		}
 
-			// it was always a success
-		return TRUE;
+		$fileObject->updateProperties($updateData);
+
+		/**
+		 * FAL has a list of allowed updateable fields:
+		 * 'uid', 'pid', 'missing', 'type', 'storage', 'identifier', 'extension', 'mime_type', 'name', 'sha1', 'size', 'creation_date', 'modification_date'
+		 * That's why _migrateddamuid, keywords, description and location_country will never be filled
+		 */
+		\TYPO3\CMS\Core\Resource\Index\FileIndexRepository::getInstance()->update($fileObject);
 	}
 
 }

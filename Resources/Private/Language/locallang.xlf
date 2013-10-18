@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.0">
+	<file source-language="en" datatype="plaintext" original="messages" date="2013-10-18T13:28:32Z" product-name="dam_falmigration">
+		<header/>
+		<body>
+
+			<trans-unit id="migrationSuccessful" xml:space="preserve">
+				<source>Migration successful</source>
+			</trans-unit>
+			<trans-unit id="migrationNotNecessary" xml:space="preserve">
+				<source>Migration not necessary</source>
+			</trans-unit>
+			<trans-unit id="migratedFiles" xml:space="preserve">
+				<source>Migrated %s files.</source>
+			</trans-unit>
+			<trans-unit id="allFilesMigrated" xml:space="preserve">
+				<source>All files have been migrated.</source>
+			</trans-unit>
+
+		</body>
+	</file>
+</xliff>

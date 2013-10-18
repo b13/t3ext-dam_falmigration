@@ -25,6 +25,7 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+
 /**
  * Scheduler Task to Migrate Categories
  * Finds all DAM categories and adds a DB field "_migrateddamcatuid"
@@ -34,13 +35,11 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  * get default language uid.
  *
  * @author      Alexander Boehm <boehm@punkt.de>
- *
  */
 class MigrateDamCategoriesTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 
 	// the storage pid for the categories
 	protected $storageUid = 1;
-
 
 	/**
 	 * Defined parent uid if the migrated categories should not be under
@@ -49,7 +48,6 @@ class MigrateDamCategoriesTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	 * @var int parent uid
 	 */
 	public $initialParentUid = 0;
-
 
 	/**
 	 * main function, needs to return TRUE or FALSE in order to tell
@@ -68,16 +66,11 @@ class MigrateDamCategoriesTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 		}
 		$parentUidMap[0] = $this->initialParentUid;
 
-
-
 		//******** STEP 1 - Get all categories *********//
 		$damCategories = $this->getAllDamCategories();
 
-
 		//******** STEP 2 - resort categorie array *********//
 		$damCategories = $this->sortingCategories($damCategories, 0);
-
-
 
 		//******** STEP 3 - Build categorie tree *********//
 		foreach($damCategories as $category) {
@@ -104,16 +97,13 @@ class MigrateDamCategoriesTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 		$messageObject = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
 		\TYPO3\CMS\Core\Messaging\FlashMessageQueue::addMessage($messageObject);
 
-
-			// it was always a success
+		// it was always a success
 		return TRUE;
 	}
-
 
 	/**
 	 * Gets all available (not deleted) DAM categories.
 	 * Returns array with all categories.
-	 *
 	 *
 	 * @return mixed
 	 */
@@ -128,7 +118,6 @@ class MigrateDamCategoriesTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 
 		return $damCategories;
 	}
-
 
 	/**
 	 * Adds new categorie in table sys_category. Requires the record array and the
