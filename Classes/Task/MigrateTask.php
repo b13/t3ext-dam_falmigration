@@ -18,7 +18,6 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *  A copy is found in the textfile GPL.txt and important notices to the license
  *  from the author is found in LICENSE.txt distributed with these scripts.
  *
- *
  *  This script is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -26,7 +25,6 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
-use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -43,37 +41,7 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
  *
  * @author Benjamin Mack <benni@typo3.org>
  */
-class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
-
-	/**
-	 * @var \TYPO3\CMS\Extbase\Object\ObjectManager
-	 */
-	protected $objectManager;
-
-	/**
-	 * @var \TYPO3\CMS\Core\Database\DatabaseConnection
-	 */
-	protected $database;
-
-	/**
-	 * @var \TYPO3\CMS\Core\Resource\FileRepository
-	 */
-	protected $fileRepository;
-
-	/**
-	 * @var \TYPO3\CMS\Core\Resource\ResourceStorage
-	 */
-	protected $storageObject;
-
-	/**
-	 * @var integer the storage uid for fileadmin
-	 */
-	protected $storageUid = 1;
-
-	/**
-	 * @var integer amount of migrated files
-	 */
-	protected $amountOfMigratedFiles = 0;
+class MigrateTask extends \TYPO3\CMS\DamFalmigration\Task\AbstractTask {
 
 	/**
 	 * how to map cols for meta data
@@ -107,17 +75,6 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	);
 
 	/**
-	 * initializes this object
-	 */
-	protected function init() {
-		$this->objectManager = GeneralUtility::makeInstance('TYPO3\\CMS\\Extbase\\Object\\ObjectManager');
-		$this->database = $GLOBALS['TYPO3_DB'];
-		$this->fileRepository = $this->objectManager->get('TYPO3\\CMS\\Core\\Resource\\FileRepository');
-		$fileFactory = ResourceFactory::getInstance();
-		$this->storageObject = $fileFactory->getStorageObject($this->storageUid);
-	}
-
-	/**
 	 * main function, needs to return TRUE or FALSE in order to tell
 	 * the scheduler whether the task went through smoothly
 	 *
@@ -128,7 +85,7 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	public function execute() {
 		$this->init();
 
-		if (ExtensionManagementUtility::isLoaded('dam')) {
+		if ($this->isTableAvailable('tx_dam')) {
 			$rows = $this->getNotMigratedDamRecords();
 			foreach ($rows as $damRecord) {
 				if ($this->isValidDirectory($damRecord)) {
@@ -227,25 +184,6 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	protected function getFullFileName($damRecord) {
 		// maybe substr is faster but as long as fileadmin directory is configurable in installtool I think str_replace is better
 		return str_replace('fileadmin', '', $this->getFileIdentifier($damRecord));
-	}
-
-	/**
-	 * add flashmessage if migration was successful or not.
-	 *
-	 * @return void
-	 */
-	protected function addResultMessage() {
-		if ($this->amountOfMigratedFiles > 0) {
-			$headline = LocalizationUtility::translate('migrationSuccessful', 'dam_falmigration');
-			$message = LocalizationUtility::translate('migratedFiles', 'dam_falmigration', array(0 => $this->amountOfMigratedFiles));
-		} else {
-			$headline = LocalizationUtility::translate('migrationNotNecessary', 'dam_falmigration');;
-			$message = LocalizationUtility::translate('allFilesMigrated', 'dam_falmigration');
-		}
-
-		$messageObject = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
-		// addMessage is a magic method realized by __call()
-		FlashMessageQueue::addMessage($messageObject);
 	}
 
 	/**

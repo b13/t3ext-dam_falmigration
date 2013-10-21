@@ -1,5 +1,6 @@
 <?php
 namespace TYPO3\CMS\DamFalmigration\Task;
+
 /***************************************************************
  *  Copyright notice
  *
@@ -17,7 +18,6 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *  A copy is found in the textfile GPL.txt and important notices to the license
  *  from the author is found in LICENSE.txt distributed with these scripts.
  *
- *
  *  This script is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -25,101 +25,159 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+
 /**
  * Scheduler Task to Migrate DAM relations to FAL relations
  * right now this is dam_ttcontent, dam_uploads
  *
  * @author      Benjamin Mack <benni@typo3.org>
- *
  */
-class MigrateRelationsTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
+class MigrateRelationsTask extends \TYPO3\CMS\DamFalmigration\Task\AbstractTask {
+
+	/**
+	 * @var \TYPO3\CMS\Core\Database\ReferenceIndex
+	 */
+	protected $referenceIndex;
+
+	/**
+	 * initializes this object
+	 */
+	protected function init() {
+		parent::init();
+		$this->referenceIndex = $this->objectManager->get('TYPO3\\CMS\\Core\\Database\\ReferenceIndex');
+	}
 
 	/**
 	 * main function, needs to return TRUE or FALSE in order to tell
 	 * the scheduler whether the task went through smoothly
-	 * 
+	 *
+	 * @throws \Exception
 	 * @return boolean
 	 */
 	public function execute() {
+		$this->init();
 
-			// check for all FAL records that are there, that have been migrated already
-		$falRecords = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
-			'uid, _migrateddamuid AS damuid',
-			'sys_file',
-			'_migrateddamuid>0',
-			'',	// group by
-			'', // order by
-			'', // limit
-			'damuid'
-		);
-
-			// get all DAM relations
-		$damRelations = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
-			'uid_local AS damuid, uid_foreign AS referenceuid, tablenames, ident',
-			'tx_dam_mm_ref',
-			'1=1'
-		);
-
-		$migratedFiles = 0;
-		foreach ($damRelations as $damRelationData) {
-			$falUid = $falRecords[$damRelationData['damuid']]['uid'];
-			$falUid = intval($falUid);
-			$recordUid = intval($damRelationData['referenceuid']);
-
-			$fieldName = $damRelationData['ident'];
-			
-				// only if we have an indexed FAL record
-			if ($falUid > 0) {
-				
-			
-					// migrate from dam_ttcontent to native FAL images
-				if ($damRelationData['tablenames'] == 'tt_content' && $fieldName == 'tx_damttcontent_files') {
-					$fieldName = 'image';
-				}
-			
+		if ($this->isTableAvailable('tx_dam_mm_ref')) {
+			$damRelations = $this->getDamReferencesWhereSysFileExists();
+			foreach ($damRelations as $damRelation) {
 				$insertData = array(
-					'uid_local' => $falUid,
-					'uid_foreign' => $recordUid,
-					'tablenames' => $damRelationData['tablenames'],
-					'fieldname' => $fieldName,
+					'pid' => $this->getPidOfForeignRecord($damRelation),
+					'tstamp' => time(),
+					'crdate' => time(),
+					'cruser_id' => $GLOBALS['BE_USER']->user['uid'],
+					'sorting' => $damRelation['sorting'],
+					'uid_local' => $damRelation['sys_file_uid'],
+					'uid_foreign' => $damRelation['uid_foreign'],
+					'tablenames' => $damRelation['tablenames'],
+					'fieldname' => $this->getColForFieldName($damRelation),
 					'table_local' => 'sys_file',
-				);
-			
-					// check if the relation already exists
-					// if so, we don't do anything
-				$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-					'uid',
-					'sys_file_reference',
-					'uid_local=' . $falUid . ' AND uid_foreign=' . $recordUid . ' AND tablenames=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($damRelationData['tablenames'], 'sys_file_reference')
-					. ' AND deleted=0'
+					'title' => $damRelation['title'],
+					'description' => $damRelation['description'],
+					'alternative' => $damRelation['alternative'],
 				);
 
-					// now put them into the sys_file_reference table
-				if ($res && $GLOBALS['TYPO3_DB']->sql_num_rows($res) === 0) {
-					/** @var $GLOBALS['TYPO3_DB'] t3lib_DB */
-					$GLOBALS['TYPO3_DB']->exec_INSERTquery('sys_file_reference', $insertData);
-					$migratedFiles++;
+				if (!$this->checkIfSysFileRelationExists($damRelation)) {
+					$this->database->exec_INSERTquery(
+						'sys_file_reference',
+						$insertData
+					);
+					$this->updateReferenceIndex($this->database->sql_insert_id());
+					$this->amountOfMigratedFiles++;
 				}
 			}
+			$this->addResultMessage();
+			return TRUE;
+		} else {
+			throw new \Exception('Extension tx_dam and dam_ttcontent is not installed. So there is nothing to migrate.');
 		}
+	}
 
-		
-		if ($migratedFiles > 0) {
-				// update the reference index
-			$refIndexObj = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Database\\ReferenceIndex');
-//			list($headerContent, $bodyContent, $errorCount) = $refIndexObj->updateIndex('check', FALSE);
-			list($headerContent, $bodyContent, $errorCount) = $refIndexObj->updateIndex('update', FALSE);
+	/**
+	 * get pid of foreign record
+	 * this is needed by sys_file_reference records
+	 *
+	 * @param array $damRelation
+	 * @return mixed
+	 */
+	protected function getPidOfForeignRecord(array $damRelation) {
+		$record = BackendUtility::getRecord(
+			$damRelation['tablenames'],
+			$damRelation['uid_foreign'],
+			'pid', '', FALSE
+		);
+		return $record['pid'];
+	}
 
-			$messageObject = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(
-				'TYPO3\\CMS\\Core\\Messaging\\FlashMessage',
-				'Migrated ' . $migratedFiles . ' relations. <br />' . nl2br($bodyContent),
-				'Migration successful'
-			);
-			\TYPO3\CMS\Core\Messaging\FlashMessageQueue::addMessage($messageObject);
+	/**
+	 * After a migration of tx_dam -> sys_file the col _migrateddamuid is filled with dam uid
+	 * Now we can search in dam relations for dam records which have already been migrated to sys_file
+	 *
+	 * @throws \Exception
+	 * @return array|NULL
+	 */
+	protected function getDamReferencesWhereSysFileExists() {
+		$rows = $this->database->exec_SELECTgetRows(
+			'MM.*, SF.uid as sys_file_uid, MD.title, MD.description, MD.alternative',
+			'tx_dam_mm_ref MM, sys_file SF, sys_file_metadata MD',
+			'MD.file = SF.uid' .
+			' AND SF._migrateddamuid = MM.uid_local'
+		);
+		if ($rows === NULL) {
+			throw new \Exception('SQL-Error in getDamReferencesWhereSysFileExists()', 1382353670);
+		} elseif (count($rows) === 0) {
+			throw new \Exception('There are no migrated dam records in sys_file. Please start to migrate DAM -> sys_file first. Or, maybe there are no dam records to migrate', 1382355647);
+		} else return $rows;
+	}
+
+	/**
+	 * check if a sys_file_reference already exists
+	 *
+	 * @param array $damRelation
+	 * @return boolean
+	 */
+	protected function checkIfSysFileRelationExists(array $damRelation) {
+		$amountOfExistingRecords = $this->database->exec_SELECTcountRows(
+			'*',
+			'sys_file_reference',
+			'uid_local = ' . $damRelation['sys_file_uid'] .
+			' AND uid_foreign = ' . $damRelation['uid_foreign'] .
+			' AND tablenames = ' . $this->database->fullQuoteStr($damRelation['tablenames'], 'sys_file_reference') .
+			' AND deleted = 0'
+		);
+		if ($amountOfExistingRecords) {
+			return TRUE;
+		} else {
+			return FALSE;
 		}
+	}
 
-			// it was always a success
-		return TRUE;
+	/**
+	 * col for fieldname was saved in col "ident"
+	 * But: If dam_ttcontent is installed fieldName is "image"
+	 *
+	 * @param array $damRelation
+	 * @return string
+	 */
+	protected function getColForFieldName(array $damRelation) {
+		if ($damRelation['tablenames'] == 'tt_content' && $damRelation['ident'] == 'tx_damttcontent_files') {
+			$fieldName = 'image';
+		} else {
+			$fieldName = $damRelation['ident'];
+		}
+		return $fieldName;
+	}
+
+	/**
+	 * update reference index
+	 *
+	 * @param integer $uid
+	 * @return void
+	 */
+	protected function updateReferenceIndex($uid) {
+		$this->referenceIndex->updateRefIndexTable('sys_file_reference', $uid);
 	}
 
 }
