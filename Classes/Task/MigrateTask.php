@@ -41,7 +41,7 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
  *
  * @author Benjamin Mack <benni@typo3.org>
  */
-class MigrateTask extends \TYPO3\CMS\DamFalmigration\Task\AbstractTask {
+class MigrateTask extends AbstractTask {
 
 	/**
 	 * how to map cols for meta data

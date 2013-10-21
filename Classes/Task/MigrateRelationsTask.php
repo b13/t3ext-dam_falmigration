@@ -35,7 +35,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
  *
  * @author      Benjamin Mack <benni@typo3.org>
  */
-class MigrateRelationsTask extends \TYPO3\CMS\DamFalmigration\Task\AbstractTask {
+class MigrateRelationsTask extends AbstractTask {
 
 	/**
 	 * @var \TYPO3\CMS\Core\Database\ReferenceIndex

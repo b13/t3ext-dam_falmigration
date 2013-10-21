@@ -15,7 +15,7 @@ has to be removed
 Tasks
 =======
 
-For now only two tasks works:
+For now only three tasks works:
 
 Migrate DAM Records to FAL Records
 ----------------------------------
@@ -45,3 +45,10 @@ This task get all records from tx_dam_mm_ref which have an already migrated reco
 records it collects additional informations and write them into sys_file_reference
 
 **no files will be moved or copied**
+
+Migrate DAM Selections
+----------------------
+
+As long as you don't want to migrate categories you can start this task without previous execution of the other tasks.
+
+This tasks migrate tx_dam_selection records to sys_file_collection
