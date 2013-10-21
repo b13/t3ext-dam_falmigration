@@ -14,7 +14,7 @@ $EM_CONF[$_EXTKEY] = array(
 	'title' => 'Migrate DAM Records and references to FAL references',
 	'description' => 'Takes the DAM records and references (for tt_content right now) and migrates them into the local fileadmin/ FAL storage.',
 	'category' => 'misc',
-	'author' => 'Benjamin Mack & The TYPO3 Community',
+	'author' => 'Benjamin Mack',
 	'author_email' => 'benni@typo3.org',
 	'shy' => '',
 	'dependencies' => 'cms',
@@ -29,10 +29,10 @@ $EM_CONF[$_EXTKEY] = array(
 	'clearCacheOnLoad' => 0,
 	'lockType' => '',
 	'author_company' => '',
-	'version' => '1.2.0',
+	'version' => '1.0.0',
 	'constraints' => array(
 		'depends' => array(
-			'typo3' => '6.0.0-6.2.99',
+			'typo3' => '6.2.0-6.2.99',
 		),
 		'conflicts' => array(
 		),
@@ -41,5 +41,3 @@ $EM_CONF[$_EXTKEY] = array(
 	),
 	'_md5_values_when_last_written' => 'a:5:{s:9:"ChangeLog";s:4:"64e1";s:10:"README.txt";s:4:"ee2d";s:12:"ext_icon.gif";s:4:"1bdc";s:19:"doc/wizard_form.dat";s:4:"b6d7";s:20:"doc/wizard_form.html";s:4:"7bb0";}',
 );
-
-?>

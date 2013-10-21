@@ -14,7 +14,7 @@
 				<source>Migrated %s files.</source>
 			</trans-unit>
 			<trans-unit id="allFilesMigrated" xml:space="preserve">
-				<source>All files have been migrated.</source>
+				<source>All files have been migrated already.</source>
 			</trans-unit>
 
 		</body>

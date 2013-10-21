@@ -51,6 +51,11 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	protected $objectManager;
 
 	/**
+	 * @var \TYPO3\CMS\Core\Database\DatabaseConnection
+	 */
+	protected $database;
+
+	/**
 	 * @var \TYPO3\CMS\Core\Resource\FileRepository
 	 */
 	protected $fileRepository;
@@ -71,10 +76,42 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	protected $amountOfMigratedFiles = 0;
 
 	/**
+	 * how to map cols for meta data
+	 * These cols are always available since TYPO3 6.2
+	 *
+	 * @var array
+	 */
+	protected $metaColMapping = array(
+		'title' => 'title',
+		'hpixels' => 'width',
+		'vpixels' => 'height',
+		'description' => 'description',
+		'alt_text' => 'alternative',
+	);
+
+	/**
+	 * how to map cols for meta data
+	 * These additional cols are available only if ext:filemetadata is installed
+	 *
+	 * @var array
+	 */
+	protected $additionalMetaColMapping = array(
+		'creator' => 'creator',
+		'keywords' => 'keywords',
+		'caption' => 'caption',
+		'language' => 'language',
+		'pages' => 'pages',
+		'publisher' => 'publisher',
+		'loc_country' => 'location_country',
+		'loc_city' => 'location_city',
+	);
+
+	/**
 	 * initializes this object
 	 */
 	protected function init() {
 		$this->objectManager = GeneralUtility::makeInstance('TYPO3\\CMS\\Extbase\\Object\\ObjectManager');
+		$this->database = $GLOBALS['TYPO3_DB'];
 		$this->fileRepository = $this->objectManager->get('TYPO3\\CMS\\Core\\Resource\\FileRepository');
 		$fileFactory = ResourceFactory::getInstance();
 		$this->storageObject = $fileFactory->getStorageObject($this->storageUid);
@@ -132,13 +169,13 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	 * @return string
 	 */
 	protected function getUidListOfAlreadyMigratedRecords() {
-		list($migratedRecords) = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
-			'GROUP_CONCAT( uid ) AS uidList',
+		list($migratedRecords) = $this->database->exec_SELECTgetRows(
+			'GROUP_CONCAT( _migrateddamuid ) AS uidList',
 			'sys_file',
-			'_migrateddamuid > 0 AND deleted = 0'
+			'_migrateddamuid > 0'
 		);
 		if (!empty($migratedRecords['uidList'])) {
-			return $migratedRecords;
+			return $migratedRecords['uidList'];
 		} else return '';
 	}
 
@@ -162,7 +199,7 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	 * @return array
 	 */
 	protected function getNotMigratedDamRecords() {
-		$rows = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+		$rows = $this->database->exec_SELECTgetRows(
 			'*',
 			'tx_dam',
 			'deleted = 0 ' . $this->getAdditionalWhereClauseForNotMigratedDamRecords()
@@ -189,7 +226,7 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	 */
 	protected function getFullFileName($damRecord) {
 		// maybe substr is faster but as long as fileadmin directory is configurable in installtool I think str_replace is better
-		return str_replace('fileadmin/', '', $this->getFileIdentifier($damRecord));
+		return str_replace('fileadmin', '', $this->getFileIdentifier($damRecord));
 	}
 
 	/**
@@ -202,7 +239,7 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 			$headline = LocalizationUtility::translate('migrationSuccessful', 'dam_falmigration');
 			$message = LocalizationUtility::translate('migratedFiles', 'dam_falmigration', array(0 => $this->amountOfMigratedFiles));
 		} else {
-			$headline = LocalizationUtility::translate('migrationNotNecassary', 'dam_falmigration');;
+			$headline = LocalizationUtility::translate('migrationNotNecessary', 'dam_falmigration');;
 			$message = LocalizationUtility::translate('allFilesMigrated', 'dam_falmigration');
 		}
 
@@ -216,30 +253,55 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	 *
 	 * @param array $damRecord
 	 * @param \TYPO3\CMS\Core\Resource\File $fileObject
+	 * @throws \Exception
 	 * @return void
 	 */
 	protected function migrateFileFromDamToFal(array $damRecord, \TYPO3\CMS\Core\Resource\File $fileObject) {
-		// add the migrated uid of the DAM record to the FAL record
+		// in getProperties() we don't have the required UID of metadata record
+		// if no metadata record is available it will automatically created within FAL
+		$metadataRecord = $fileObject->_getMetaData();
+
+		if (is_array($metadataRecord)) {
+			// update existing record
+			$this->database->exec_UPDATEquery(
+				'sys_file_metadata',
+				'uid = ' . $metadataRecord['uid'],
+				$this->createArrayForUpdateInsertSysFileRecord($damRecord)
+			);
+
+			// add the migrated uid of the DAM record to the FAL record
+			$this->database->exec_UPDATEquery(
+				'sys_file',
+				'uid = ' . $fileObject->getUid(),
+				array('_migrateddamuid' => $damRecord['uid'])
+			);
+		}
+	}
+
+	/**
+	 * create an array for insert or updating the sys_file record
+	 *
+	 * @param array $damRecord
+	 * @return array
+	 */
+	protected function createArrayForUpdateInsertSysFileRecord(array $damRecord) {
 		$updateData = array(
-			'_migrateddamuid' => $damRecord['uid']
+			'tstamp' => time(),
 		);
 
-		// also add meta data to the FAL record
-		if (ExtensionManagementUtility::isLoaded('filemetadata')) {
-			// see script of CK in Installtool for migration sys_file -> sys_file_metadata
-			$updateData['keywords'] = $damRecord['keywords'];
-			$updateData['description'] = $damRecord['description'];
-			$updateData['location_country'] = $damRecord['loc_country'];
+		// add always available cols for filemetadata
+		foreach ($this->metaColMapping as $damColName => $metaColName) {
+			$updateData[$metaColName] = $damRecord[$damColName];
 		}
 
-		$fileObject->updateProperties($updateData);
+		// add additional cols if ext:for filemetadata is installed
+		if (ExtensionManagementUtility::isLoaded('filemetadata')) {
+			foreach ($this->additionalMetaColMapping as $damColName => $metaColName) {
+				$updateData[$metaColName] = $damRecord[$damColName];
+			}
+		}
 
-		/**
-		 * FAL has a list of allowed updateable fields:
-		 * 'uid', 'pid', 'missing', 'type', 'storage', 'identifier', 'extension', 'mime_type', 'name', 'sha1', 'size', 'creation_date', 'modification_date'
-		 * That's why _migrateddamuid, keywords, description and location_country will never be filled
-		 */
-		\TYPO3\CMS\Core\Resource\Index\FileIndexRepository::getInstance()->update($fileObject);
+		return $updateData;
 	}
 
 }
