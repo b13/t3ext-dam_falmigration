@@ -63,9 +63,9 @@ abstract class AbstractTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	protected $storageUid = 1;
 
 	/**
-	 * @var integer amount of migrated files
+	 * @var integer amount of migrated records
 	 */
-	protected $amountOfMigratedFiles = 0;
+	protected $amountOfMigratedRecords = 0;
 
 	/**
 	 * initializes this object
@@ -96,9 +96,9 @@ abstract class AbstractTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	 * @return void
 	 */
 	protected function addResultMessage() {
-		if ($this->amountOfMigratedFiles > 0) {
+		if ($this->amountOfMigratedRecords > 0) {
 			$headline = LocalizationUtility::translate('migrationSuccessful', 'dam_falmigration');
-			$message = LocalizationUtility::translate('migratedFiles', 'dam_falmigration', array(0 => $this->amountOfMigratedFiles));
+			$message = LocalizationUtility::translate('migratedFiles', 'dam_falmigration', array(0 => $this->amountOfMigratedRecords));
 		} else {
 			$headline = LocalizationUtility::translate('migrationNotNecessary', 'dam_falmigration');;
 			$message = LocalizationUtility::translate('allFilesMigrated', 'dam_falmigration');

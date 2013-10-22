@@ -93,7 +93,7 @@ class MigrateTask extends AbstractTask {
 						$fileObject = $this->storageObject->getFile($this->getFullFileName($damRecord));
 						if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
 							$this->migrateFileFromDamToFal($damRecord, $fileObject);
-							$this->amountOfMigratedFiles++;
+							$this->amountOfMigratedRecords++;
 						}
 					} catch(\Exception $e) {
 						// If file is not found
@@ -238,7 +238,6 @@ class MigrateTask extends AbstractTask {
 				$updateData[$metaColName] = $damRecord[$damColName];
 			}
 		}
-
 		return $updateData;
 	}
 

@@ -85,7 +85,7 @@ class MigrateRelationsTask extends AbstractTask {
 						$insertData
 					);
 					$this->updateReferenceIndex($this->database->sql_insert_id());
-					$this->amountOfMigratedFiles++;
+					$this->amountOfMigratedRecords++;
 				}
 			}
 			$this->addResultMessage();

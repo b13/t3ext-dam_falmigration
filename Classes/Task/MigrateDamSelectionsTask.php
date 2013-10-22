@@ -63,7 +63,7 @@ class MigrateDamSelectionsTask extends AbstractTask {
 				);
 				$this->database->exec_INSERTquery('sys_file_collection', $sysFileCollection);
 
-				$this->amountOfMigratedFiles++;
+				$this->amountOfMigratedRecords++;
 			}
 		}
 		

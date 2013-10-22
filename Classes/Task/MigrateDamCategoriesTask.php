@@ -34,18 +34,17 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  * currently it does not take care of the sys_language_uid, so all categories
  * get default language uid.
  *
- * @author      Alexander Boehm <boehm@punkt.de>
+ * @author Alexander Boehm <boehm@punkt.de>
  */
-class MigrateDamCategoriesTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
-
-	// the storage pid for the categories
-	protected $storageUid = 1;
+class MigrateDamCategoriesTask extends AbstractTask {
 
 	/**
-	 * Defined parent uid if the migrated categories should not be under
-	 * category root
-	 *
-	 * @var int parent uid
+	 * @var integer Where to store new created sys_category records
+	 */
+	public $storeOnPid = 1;
+
+	/**
+	 * @var integer Defines a sys_category UID where to store the new category tree in.
 	 */
 	public $initialParentUid = 0;
 
@@ -53,69 +52,60 @@ class MigrateDamCategoriesTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	 * main function, needs to return TRUE or FALSE in order to tell
 	 * the scheduler whether the task went through smoothly
 	 *
+	 * @throws \Exception
 	 * @return boolean
 	 */
 	public function execute() {
+		$this->init();
 
-		$migratedCategories = 0;
+		if ($this->isTableAvailable('tx_dam_cat')) {
+			// if a parent uid is given but not available, set initial uid to 0
+			if($this->initialParentUid > 0 && !$this->checkInitialParentAvailable()) {
+				$this->initialParentUid = 0;
+			}
 
-		// $parrentUidMap[oldUid] = 'newUid';
-		$parentUidMap = array();
-		if($this->initialParentUid > 0 && !$this->checkInitialParentAvailable()) {
-			$this->initialParentUid = 0;
-		}
-		$parentUidMap[0] = $this->initialParentUid;
+			// $parrentUidMap[oldUid] = 'newUid';
+			$parentUidMap = array();
+			$parentUidMap[0] = $this->initialParentUid;
 
-		//******** STEP 1 - Get all categories *********//
-		$damCategories = $this->getAllDamCategories();
+			//******** STEP 1 - Get all categories *********//
+			$damCategories = $this->getAllDamCategories();
 
-		//******** STEP 2 - resort categorie array *********//
-		$damCategories = $this->sortingCategories($damCategories, 0);
+			//******** STEP 2 - resort categorie array *********//
+			$damCategories = $this->sortingCategories($damCategories, 0);
 
-		//******** STEP 3 - Build categorie tree *********//
-		foreach($damCategories as $category) {
+			//******** STEP 3 - Build categorie tree *********//
+			foreach($damCategories as $category) {
 
-			$newParentUid = $parentUidMap[$category['parent_id']];
+				$newParentUid = $parentUidMap[$category['parent_id']];
 
-			//here the new category gets createt in table sys_category
-			$newUid = $this->createNewCategory($category, $newParentUid);
+				//here the new category gets createt in table sys_category
+				$newUid = $this->createNewCategory($category, $newParentUid);
 
-			$parentUidMap[$category['uid']] = $newUid;
-			$migratedCategories++;
-		}
+				$parentUidMap[$category['uid']] = $newUid;
+				$this->amountOfMigratedRecords++;
+			}
 
-		//******** STEP 4 - Finished, do output *********//
-		// print a message
-		if ($migratedCategories > 0) {
-			$headline = 'Migration successful';
-			$message = 'Migrated ' . $migratedCategories . ' categories.';
+			$this->addResultMessage();
+			return TRUE;
 		} else {
-			$headline = 'Migration not necessary';
-			$message = 'All categories have been migrated.';
+			throw new \Exception('Table tx_dam_cat is not avai´able. So there is nothing to migrate.');
 		}
-
-		$messageObject = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
-		\TYPO3\CMS\Core\Messaging\FlashMessageQueue::addMessage($messageObject);
-
-		// it was always a success
-		return TRUE;
 	}
 
 	/**
 	 * Gets all available (not deleted) DAM categories.
 	 * Returns array with all categories.
 	 *
-	 * @return mixed
+	 * @return array
 	 */
 	protected function getAllDamCategories() {
-
-		$select = 'uid, parent_id, title, description';
-		$from = 'tx_dam_cat';
-		$where = 'deleted = 0';
-		$orderBy = 'parent_id';
-
-		$damCategories = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($select,$from,$where,'',$orderBy);
-
+		$damCategories = $this->database->exec_SELECTgetRows(
+			'uid, parent_id, tstamp, sorting, crdate, cruser_id, hidden, title, description',
+			'tx_dam_cat',
+			'deleted = 0',
+			'', 'parent_id', ''
+		);
 		return $damCategories;
 	}
 
@@ -125,20 +115,25 @@ class MigrateDamCategoriesTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	 *
 	 * @param $record
 	 * @param $newParentUid
-	 * @return mixed
+	 * @return integer
 	 */
 	protected function createNewCategory($record, $newParentUid) {
 		$sysCategory = array(
-			'pid' => $this->storageUid,
+			'pid' => $this->storeOnPid,
+			'parent' => $newParentUid,
+			'tstamp' => $record['tstamp'],
+			'sorting' => $record['sorting'],
+			'crdate' => $record['crdate'],
+			'cruser_id' => $record['cruser_id'],
+			'hidden' => $record['hidden'],
 			'title' => $record['title'],
 			'description' => $record['description'],
-			'parent' => $newParentUid,
 			'_migrateddamcatuid' => $record['uid']
 		);
 
-		$GLOBALS['TYPO3_DB']->exec_INSERTquery('sys_category', $sysCategory);
+		$this->database->exec_INSERTquery('sys_category', $sysCategory);
 
-		$newUid = $GLOBALS['TYPO3_DB']->sql_insert_id();
+		$newUid = $this->database->sql_insert_id();
 
 		return $newUid;
 	}
@@ -153,7 +148,6 @@ class MigrateDamCategoriesTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	 * @return array
 	 */
 	protected function sortingCategories($damCategories, $parentUid) {
-
 		// New array for sorting dam records
 		$sortedDamCategories = array();
 		// Remember the uids for finding sub-categories
@@ -185,18 +179,18 @@ class MigrateDamCategoriesTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 
 
 	/**
-	 * Checks if the wanted parent uid is available.
+	 * Check if the wanted parent uid is available.
 	 *
-	 * @return bool
+	 * @return boolean
 	 */
-	protected function checkInitialParentAvailable(){
-		$select = 'uid';
-		$from = 'sys_category';
-		$where = 'deleted = 0';
+	protected function checkInitialParentAvailable() {
+		$amountOfResults = $this->database->exec_SELECTcountRows(
+			'*',
+			'sys_category',
+			'deleted = 0'
+		);
 
-		$parentUidResult = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($select,$from,$where);
-
-		if(count($parentUidResult) > 0){
+		if ($amountOfResults) {
 			return TRUE;
 		} else {
 			return FALSE;

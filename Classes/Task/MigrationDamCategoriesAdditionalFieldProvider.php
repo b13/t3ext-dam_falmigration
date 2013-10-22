@@ -23,6 +23,7 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+use TYPO3\CMS\Scheduler\AdditionalFieldProviderInterface;
 
 /**
  * Additional BE fields for Migration Dam Categories task.
@@ -30,14 +31,7 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *
  * @author Alexander Boehm <boehm@punkt.de>
  */
-class MigrationDamCategoriesAdditionalFieldProvider implements \TYPO3\CMS\Scheduler\AdditionalFieldProviderInterface {
-
-	/**
-	 * Default initial parent uid for migrated dam categories
-	 *
-	 * @var integer Default number of days
-	 */
-	protected $defaultInitialParentUid = 0;
+class MigrationDamCategoriesAdditionalFieldProvider implements AdditionalFieldProviderInterface {
 
 	/**
 	 * @param array $taskInfo Reference to the array containing the info used in the add/edit form
@@ -46,25 +40,58 @@ class MigrationDamCategoriesAdditionalFieldProvider implements \TYPO3\CMS\Schedu
 	 * @return array Array containing all the information pertaining to the additional fields
 	 */
 	public function getAdditionalFields(array &$taskInfo, $task, \TYPO3\CMS\Scheduler\Controller\SchedulerModuleController $parentObject) {
-		// Initialize selected fields
-		if (!isset($taskInfo['scheduler_migrationDamCategories_initialParentUid'])) {
-			$taskInfo['scheduler_migrationDamCategories_initialParentUid'] = $this->defaultInitialParentUid;
+		$this->setValueForTaskInfo($taskInfo, $parentObject, 'scheduler_migrationDamCategories_initialParentUid', 0, $task->initialParentUid);
+		$this->setValueForTaskInfo($taskInfo, $parentObject, 'scheduler_migrationDamCategories_storeOnPid', 0, $task->storeOnPid);
+
+		$additionalFields = array();
+		$id = 'scheduler_migrationDamCategories_initialParentUid';
+		$additionalFields[$id] = array('code' => $this->createInputField($taskInfo, $id),	'label' => 'Initial parent UID');
+		$id = 'scheduler_migrationDamCategories_storeOnPid';
+		$additionalFields[$id] = array('code' => $this->createInputField($taskInfo, $id),	'label' => 'Store on PID');
+
+		return $additionalFields;
+	}
+
+	/**
+	 * set the value for given field in task
+	 *
+	 * @param array $taskInfo
+	 * @param \TYPO3\CMS\Scheduler\Controller\SchedulerModuleController $parentObject
+	 * @param string $id
+	 * @param string $default
+	 * @param string $editValue
+	 * @return void
+	 */
+	protected function setValueForTaskInfo(array &$taskInfo, \TYPO3\CMS\Scheduler\Controller\SchedulerModuleController $parentObject, $id, $default, $editValue) {
+		if (!isset($taskInfo[$id])) {
+			$taskInfo[$id] = $default;
 			if ($parentObject->CMD === 'edit') {
-				$taskInfo['scheduler_migrationDamCategories_initialParentUid'] = $task->initialParentUid;
+				$taskInfo[$id] = $editValue;
 			}
 		}
-		$fieldName = 'tx_scheduler[scheduler_migrationDamCategories_initialParentUid]';
-		$fieldId = 'scheduler_migrationDamCategories_initialParentUid';
-		$fieldValue = intval($taskInfo['scheduler_migrationDamCategories_initialParentUid']);
-		$fieldHtml = '<input type="text" name="' . $fieldName . '" id="' . $fieldId . '" value="' . htmlspecialchars($fieldValue) . '" />';
-		$additionalFields[$fieldId] = array(
-			'code' => $fieldHtml,
-			//'label' => 'LLL:EXT:scheduler/mod1/locallang.xlf:label.recyclerGarbageCollection.numberOfDays',
-			'label' => 'Initial parent UID',
-			'cshKey' => '_MOD_system_txschedulerM1',
-			'cshLabel' => $fieldId
+	}
+
+	/**
+	 * create a textfield
+	 *
+	 * @param array $taskInfo
+	 * @param string $id
+	 * @return string
+	 */
+	protected function createInputField(array &$taskInfo, $id) {
+		$attributes = array(
+			'type' => 'text',
+			'name' => 'tx_scheduler[' . $id . ']',
+			'id' => $id,
+			'value' => htmlspecialchars($taskInfo[$id])
 		);
-		return $additionalFields;
+
+		$htmlAttribute = array();
+		foreach ($attributes as $attribute => $value) {
+			$htmlAttribute[] = $attribute . '="' . $value . '"';
+		}
+
+		return '<input ' . implode(' ',  $htmlAttribute) . ' />';
 	}
 
 	/**
@@ -76,12 +103,17 @@ class MigrationDamCategoriesAdditionalFieldProvider implements \TYPO3\CMS\Schedu
 	 */
 	public function validateAdditionalFields(array &$submittedData, \TYPO3\CMS\Scheduler\Controller\SchedulerModuleController $parentObject) {
 		$result = TRUE;
-		// Check if initial parent uid is a number and greater or equals to 0
-		// If not, fail validation and issue error message
+
 		if (!is_numeric($submittedData['scheduler_migrationDamCategories_initialParentUid']) || intval($submittedData['scheduler_migrationDamCategories_initialParentUid']) < 0) {
 			$result = FALSE;
 			$parentObject->addMessage($GLOBALS['LANG']->sL('LLL:EXT:scheduler/mod1/locallang.xlf:msg.invalidNumberOfDays'), \TYPO3\CMS\Core\Messaging\FlashMessage::ERROR);
 		}
+
+		if (!is_numeric($submittedData['scheduler_migrationDamCategories_storeOnPid']) || intval($submittedData['scheduler_migrationDamCategories_storeOnPid']) < 0) {
+			$result = FALSE;
+			$parentObject->addMessage($GLOBALS['LANG']->sL('LLL:EXT:scheduler/mod1/locallang.xlf:msg.invalidNumberOfDays'), \TYPO3\CMS\Core\Messaging\FlashMessage::ERROR);
+		}
+
 		return $result;
 	}
 
@@ -94,7 +126,7 @@ class MigrationDamCategoriesAdditionalFieldProvider implements \TYPO3\CMS\Schedu
 	 */
 	public function saveAdditionalFields(array $submittedData, \TYPO3\CMS\Scheduler\Task\AbstractTask $task) {
 		$task->initialParentUid = intval($submittedData['scheduler_migrationDamCategories_initialParentUid']);
+		$task->storeOnPid = intval($submittedData['scheduler_migrationDamCategories_storeOnPid']);
 	}
 
 }
-?>
