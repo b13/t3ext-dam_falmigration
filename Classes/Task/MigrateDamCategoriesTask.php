@@ -100,8 +100,9 @@ class MigrateDamCategoriesTask extends AbstractTask {
 	 * @return array
 	 */
 	protected function getAllDamCategories() {
+		// this query can also count all related categories (sys_category.items)
 		$damCategories = $this->database->exec_SELECTgetRows(
-			'uid, parent_id, tstamp, sorting, crdate, cruser_id, hidden, title, description',
+			'uid, parent_id, tstamp, sorting, crdate, cruser_id, hidden, title, description, (SELECT COUNT(*) FROM tx_dam_mm_cat WHERE tx_dam_mm_cat.uid_foreign = tx_dam_cat.uid) as items',
 			'tx_dam_cat',
 			'deleted = 0',
 			'', 'parent_id', ''
@@ -128,6 +129,7 @@ class MigrateDamCategoriesTask extends AbstractTask {
 			'hidden' => $record['hidden'],
 			'title' => $record['title'],
 			'description' => $record['description'],
+			'items' => $record['items'],
 			'_migrateddamcatuid' => $record['uid']
 		);
 

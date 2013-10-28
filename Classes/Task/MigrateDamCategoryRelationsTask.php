@@ -35,209 +35,85 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  * currently it does not take care of the sys_language_uid, so all categories
  * get default language uid.
  *
- * @author      Alexander Boehm <boehm@punkt.de>
- *
+ * @author Alexander Boehm <boehm@punkt.de>
  */
-class MigrateDamCategoryRelationsTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
-
-	// the storage pid for the categories
-	protected $storageUid = 1;
-
-	/**
-	 * Defined parent uid if the migrated categories should not be under
-	 * category root
-	 *
-	 * @var int parent uid
-	 */
-	public $initialParentUid = 0;
+class MigrateDamCategoryRelationsTask extends AbstractTask {
 
 	/**
 	 * main function, needs to return TRUE or FALSE in order to tell
 	 * the scheduler whether the task went through smoothly
 	 *
+	 * @throws \Exception
 	 * @return boolean
 	 */
 	public function execute() {
+		$this->init();
 
-		/*
-		 * Vorgehen:
-		 *
-		 * ------------------ Hole alle FAL mit _migrateddam attribut
-		 * ------------------ Hole alle Einträge aus dam_mm der migrierten Daten (sortiert nach local_uid)
-		 * ------------------ Hole Kategorien (uid, dam_uid)
-		 * - Schreibe in sys_category_record_mm neue Einträge (+Mitzählen)
-		 * - Update FAL-Eintrag Spalte categories < = Count
-		 *
-		 */
+		if ($this->isTableAvailable('tx_dam_mm_ref')) {
+			$categoryRelations = $this->getCategoryRelationsWhereSysCategoryExists();
+			foreach ($categoryRelations as $categoryRelation) {
+				$insertData = array(
+					'uid_local' => $categoryRelation['sys_file_uid'],
+					'uid_foreign' => $categoryRelation['sys_category_uid'],
+					'sorting' => $categoryRelation['sorting'],
+					'sorting_foreign' => $categoryRelation['sorting_foreign'],
+					'tablenames' => 'sys_file',
+				);
 
-		//******** STEP 1 *********//
-		// get all FAL records that are there, that have been migrated already
-		// seen by the "_migrateddamuid" flag
-		$migratedRecords = $this->getAllMigratedDamRecords();
-
-		//******** STEP 2 *********//
-		// get all entries from dam_cat_mm with given local_uid
-		$damUids = array_keys($migratedRecords);
-		$additionalWhere = implode(',',$damUids);
-		$damMMEntries = $this->getAllDamMMCatEntries($additionalWhere);
-
-		//******** STEP 3 *********//
-		// get all FAL records that are there, that have been migrated already
-		// seen by the "_migrateddamuid" flag
-		$migratedCategories = $this->getAllMigratedDamCategories();
-
-		//******** STEP 4 *********//
-		// add new file to cat relations
-		foreach($damMMEntries as $mmEntry) {
-			$newFileUid = $migratedRecords[$mmEntry['uid_local']]['uid'];
-			$newCatUid = $migratedCategories[$mmEntry['uid_foreign']]['uid'];
-
-			//Insert new Relation
-			$insertResult = $this->createNewCategoryToFileRelation($newFileUid, $newCatUid);
-
-			if($insertResult) {
-				// increase items in cat
-				$this->increaseItemsFieldOfCat($newCatUid);
-				// increase categories in file
-				$this->increaseCategoriesFieldOfFile($newFileUid);
-			} else {
-				// do nothing at the moment
+				if (!$this->checkIfSysCategoryRelationExists($categoryRelation)) {
+					$this->database->exec_INSERTquery(
+						'sys_category_record_mm',
+						$insertData
+					);
+					$this->amountOfMigratedRecords++;
+				}
 			}
-		}
-
-		//******** STEP 4 - Finished, do output *********//
-		// print a message
-		/*if ($migratedCategories > 0) {
-			$headline = 'Migration successful';
-			$message = 'Migrated ' . $migratedCategories . ' categories.';
+			$this->addResultMessage();
+			return TRUE;
 		} else {
-			$headline = 'Migration not necessary';
-			$message = 'All categories have been migrated.';
+			throw new \Exception('Table tx_dam_mm_ref not found. So there is nothing to migrate.');
 		}
-*/
-//		$messageObject = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
-//		\TYPO3\CMS\Core\Messaging\FlashMessageQueue::addMessage($messageObject);
-
-
-			// it was always a success
-		return TRUE;
 	}
 
 	/**
-	 * Gets all available (not deleted) migrated DAM categories.
-	 * Returns array with all categories.
+	 * After a migration of tx_dam_cat -> sys_category the col _migrateddamcatuid is filled with dam category uid
+	 * Now we can search in dam category relations for dam categories which have already been migrated to sys_category
 	 *
-	 *
-	 * @return mixed
+	 * @throws \Exception
+	 * @return array
 	 */
-	protected function getAllMigratedDamCategories() {
-
-		$select = 'uid, _migrateddamcatuid AS damcatuid';
-		$from = 'sys_category';
-		$where = '_migrateddamcatuid>0 AND deleted=0';
-		$index = 'damcatuid';
-
-		$migratedCategories = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($select,$from,$where,'','','',$index);
-
-		return $migratedCategories;
-	}
-
-	/**
-	 * Gets all available (not deleted) migrated DAM records.
-	 * Returns array with all records.
-	 *
-	 * @return mixed
-	 */
-	protected function getAllMigratedDamRecords() {
-
-		$select = 'uid, _migrateddamuid AS damuid';
-		$from = 'sys_file';
-		$where = '_migrateddamuid>0';
-		$index = 'damuid';
-
-		$migratedRecords = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($select,$from,$where,'','','',$index);
-
-		return $migratedRecords;
-	}
-
-	/**
-	 * Gets all dam_mm_cat entries.
-	 * Returns array with all records.
-	 *
-	 * @param $damUids  A list of dam uids, seperated with ','
-	 * @return mixed
-	 */
-	protected function getAllDamMMCatEntries($damUids) {
-
-		$select = 'uid_local, uid_foreign';
-		$from = 'tx_dam_mm_cat';
-		$where = 'uid_local IN(' . $damUids . ')';
-		$orderBy = 'uid_local';
-
-		$damMMEntries = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($select,$from,$where,'',$orderBy);
-
-		return $damMMEntries;
-	}
-
-
-	/**
-	 * Adds new relation between category and file in table sys_category_record_mm.
-	 * Requires the uid of the FAL file and the uid of the Category
-	 *
-	 * @param $record
-	 * @param $newParentUid
-	 * @return mixed
-	 */
-	protected function createNewCategoryToFileRelation($newFileUid, $newCatUid) {
-
-		if($newCatUid <= 0 || $newFileUid <= 0){
-			return FALSE;
-		}
-
-		$mmRelation = array(
-			'uid_local' => $newCatUid,
-			'uid_foreign' => $newFileUid,
-			'tablenames' => 'sys_file'
+	protected function getCategoryRelationsWhereSysCategoryExists() {
+		$rows = $this->database->exec_SELECTgetRows(
+			'MM.*, SF.uid as sys_file_uid, SC.uid as sys_category_uid',
+			'tx_dam_mm_cat MM, sys_file SF, sys_category SC',
+			'SC._migrateddamcatuid = MM.uid_foreign AND SF._migrateddamuid = MM.uid_local'
 		);
+		if ($rows === NULL) {
+			throw new \Exception('SQL-Error in getCategoryRelationsWhereSysCategoryExists()', 1382968725);
+		} elseif (count($rows) === 0) {
+			throw new \Exception('There are no migrated dam categories in sys_category. Please start to migrate DAM Cat -> sys_category first. Or, maybe there are no dam categories to migrate', 1382968775);
+		} else return $rows;
+	}
 
-		$result = $GLOBALS['TYPO3_DB']->exec_INSERTquery('sys_category_record_mm', $mmRelation);
-
-		if($result) {
+	/**
+	 * check if a sys_category_record_mm already exists
+	 *
+	 * @param array $categoryRelation
+	 * @return boolean
+	 */
+	protected function checkIfSysCategoryRelationExists(array $categoryRelation) {
+		$amountOfExistingRecords = $this->database->exec_SELECTcountRows(
+			'*',
+			'sys_category_record_mm',
+			'uid_local = ' . $categoryRelation['sys_file_uid'] .
+			' AND uid_foreign = ' . $categoryRelation['sys_category_uid'] .
+			' AND tablenames = "sys_file"'
+		);
+		if ($amountOfExistingRecords) {
 			return TRUE;
 		} else {
 			return FALSE;
 		}
 	}
 
-	protected function increaseItemsFieldOfCat($catUid) {
-
-		$select = 'items';
-		$from = 'sys_category';
-		$where = 'deleted=0 AND uid=' . $catUid;
-
-		$currentItemsValue = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($select,$from,$where);
-
-		$updateValues = array(
-			'items' => $currentItemsValue[0]['items'] +1
-		);
-		$where = 'uid = ' . $catUid;
-
-		$GLOBALS['TYPO3_DB']->exec_UPDATEquery('sys_category', $where, $updateValues);
-	}
-
-	protected function increaseCategoriesFieldOfFile($fileUid) {
-
-		$select = 'categories';
-		$from = 'sys_file';
-		$where = 'deleted=0 AND uid=' . $fileUid;
-
-		$currentCategoriesValue = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($select,$from,$where);
-
-		$updateValues = array(
-			'categories' => $currentCategoriesValue[0]['categories'] +1
-		);
-		$where = 'uid = ' . $fileUid;
-
-		$GLOBALS['TYPO3_DB']->exec_UPDATEquery('sys_file', $where, $updateValues);
-	}
 }

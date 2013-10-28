@@ -55,6 +55,7 @@ class MigrateTask extends AbstractTask {
 		'vpixels' => 'height',
 		'description' => 'description',
 		'alt_text' => 'alternative',
+		'categories' => 'categories',
 	);
 
 	/**
@@ -157,7 +158,7 @@ class MigrateTask extends AbstractTask {
 	 */
 	protected function getNotMigratedDamRecords() {
 		$rows = $this->database->exec_SELECTgetRows(
-			'*',
+			'tx_dam.*, (SELECT COUNT(*) FROM tx_dam_mm_cat WHERE tx_dam_mm_cat.uid_local = tx_dam.uid) as categories',
 			'tx_dam',
 			'deleted = 0 ' . $this->getAdditionalWhereClauseForNotMigratedDamRecords()
 		);

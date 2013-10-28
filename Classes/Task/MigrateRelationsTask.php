@@ -116,14 +116,13 @@ class MigrateRelationsTask extends AbstractTask {
 	 * Now we can search in dam relations for dam records which have already been migrated to sys_file
 	 *
 	 * @throws \Exception
-	 * @return array|NULL
+	 * @return array
 	 */
 	protected function getDamReferencesWhereSysFileExists() {
 		$rows = $this->database->exec_SELECTgetRows(
 			'MM.*, SF.uid as sys_file_uid, MD.title, MD.description, MD.alternative',
 			'tx_dam_mm_ref MM, sys_file SF, sys_file_metadata MD',
-			'MD.file = SF.uid' .
-			' AND SF._migrateddamuid = MM.uid_local'
+			'MD.file = SF.uid AND SF._migrateddamuid = MM.uid_local'
 		);
 		if ($rows === NULL) {
 			throw new \Exception('SQL-Error in getDamReferencesWhereSysFileExists()', 1382353670);
