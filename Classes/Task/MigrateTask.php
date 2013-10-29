@@ -94,8 +94,6 @@ class MigrateTask extends AbstractTask {
 						$fileObject = $this->storageObject->getFile($this->getFullFileName($damRecord));
 						if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
 							$this->migrateFileFromDamToFal($damRecord, $fileObject);
-							// generate Thumbnails/entry in sys_file_processedfile if is image
-							$fileObject->process(\TYPO3\CMS\Core\Resource\ProcessedFile::CONTEXT_IMAGEPREVIEW, array('width' => 150, 'height' => 150));
 							$this->amountOfMigratedRecords++;
 						}
 					} catch(\Exception $e) {

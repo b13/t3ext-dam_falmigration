@@ -85,6 +85,18 @@ class MigrateRelationsTask extends AbstractTask {
 						$insertData
 					);
 					$this->updateReferenceIndex($this->database->sql_insert_id());
+
+					// pageLayoutView-object needs image to be set something higher than 0
+					if ($damRelation['tablenames'] === 'tt_content' && $this->getColForFieldName($damRelation) === 'image') {
+						$tcaConfig = $GLOBALS['TCA']['tt_content']['columns']['image']['config'];
+						if ($tcaConfig['type'] === 'inline') {
+							$this->database->exec_UPDATEquery(
+								'tt_content',
+								'uid = ' . $damRelation['uid_foreign'],
+								array('image' => 1)
+							);
+						}
+					}
 					$this->amountOfMigratedRecords++;
 				}
 			}
