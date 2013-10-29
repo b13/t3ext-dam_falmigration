@@ -104,6 +104,9 @@ class MigrateTask extends AbstractTask {
 					}
 				}
 			}
+
+			$this->addResultMessage();
+
 			// mark task as successful executed
 			return TRUE;
 		} else {
@@ -164,8 +167,12 @@ class MigrateTask extends AbstractTask {
 			'tx_dam',
 			'deleted = 0 ' . $this->getAdditionalWhereClauseForNotMigratedDamRecords()
 		);
-
-		return $rows;
+		if ($rows === NULL) {
+			// SQL error appears
+			return array();
+		} else {
+			return $rows;
+		}
 	}
 
 	/**
