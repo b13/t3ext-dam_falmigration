@@ -25,10 +25,9 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
-use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
  * Scheduler Task to Migrate Records
@@ -76,6 +75,13 @@ class MigrateTask extends AbstractTask {
 	);
 
 	/**
+	 * saves the amount of files which could not be found in storage
+	 *
+	 * @var integer
+	 */
+	protected $amountOfFilesNotFound = 0;
+
+	/**
 	 * main function, needs to return TRUE or FALSE in order to tell
 	 * the scheduler whether the task went through smoothly
 	 *
@@ -98,12 +104,20 @@ class MigrateTask extends AbstractTask {
 						}
 					} catch(\Exception $e) {
 						// If file is not found
+						$this->amountOfFilesNotFound++;
 						continue;
 					}
 				}
 			}
 
 			$this->addResultMessage();
+
+			$messageObject = GeneralUtility::makeInstance(
+				'TYPO3\\CMS\\Core\\Messaging\\FlashMessage',
+				'Not migrated dam records at start of task: ' . count($rows) . '. Migrated files after task: ' . $this->amountOfMigratedRecords . '. Files not found: ' . $this->amountOfFilesNotFound . '.',
+				'file analyse'
+			);
+			FlashMessageQueue::addMessage($messageObject);
 
 			// mark task as successful executed
 			return TRUE;
@@ -124,37 +138,6 @@ class MigrateTask extends AbstractTask {
 	}
 
 	/**
-	 * get comma separated list of already migrated dam records
-	 * This method checked this with help of col: _migrateddamuid
-	 *
-	 * @return string
-	 */
-	protected function getUidListOfAlreadyMigratedRecords() {
-		list($migratedRecords) = $this->database->exec_SELECTgetRows(
-			'GROUP_CONCAT( _migrateddamuid ) AS uidList',
-			'sys_file',
-			'_migrateddamuid > 0'
-		);
-		if (!empty($migratedRecords['uidList'])) {
-			return $migratedRecords['uidList'];
-		} else return '';
-	}
-
-	/**
-	 * this method generates an additional where clause to find all dam records
-	 * which were not already migrated
-	 *
-	 * @return string
-	 */
-	protected function getAdditionalWhereClauseForNotMigratedDamRecords() {
-		$uidList = $this->getUidListOfAlreadyMigratedRecords();
-		if ($uidList) {
-			$additionalWhereClause = 'AND uid NOT IN (' . $uidList . ')';
-		} else $additionalWhereClause = '';
-		return $additionalWhereClause;
-	}
-
-	/**
 	 * get all dam records which have not been migrated yet
 	 *
 	 * @return array
@@ -162,8 +145,8 @@ class MigrateTask extends AbstractTask {
 	protected function getNotMigratedDamRecords() {
 		$rows = $this->database->exec_SELECTgetRows(
 			'tx_dam.*, (SELECT COUNT(*) FROM tx_dam_mm_cat WHERE tx_dam_mm_cat.uid_local = tx_dam.uid) as categories',
-			'tx_dam',
-			'deleted = 0 ' . $this->getAdditionalWhereClauseForNotMigratedDamRecords()
+			'tx_dam LEFT JOIN sys_file ON (tx_dam.uid = sys_file._migrateddamuid)',
+			'sys_file.uid IS NULL AND tx_dam.deleted = 0'
 		);
 		if ($rows === NULL) {
 			// SQL error appears

@@ -3,6 +3,7 @@
 #
 CREATE TABLE sys_file (
 	_migrateddamuid int(11) unsigned DEFAULT '0' NOT NULL
+	KEY migratedRecords (_migrateddamuid)
 );
 
 #
@@ -18,4 +19,11 @@ CREATE TABLE sys_file_collection (
 #
 CREATE TABLE sys_category (
 	_migrateddamcatuid int(11) unsigned DEFAULT '0' NOT NULL
+);
+
+#
+# Table structure for table 'tx_dam'
+#
+CREATE TABLE tx_dam (
+	KEY deletedRecords (deleted)
 );
