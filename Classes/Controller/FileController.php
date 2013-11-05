@@ -40,9 +40,9 @@ class FileController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionController 
 	public function overviewAction() {
 	
 		$indexedFilesInMainStorage = $GLOBALS['TYPO3_DB']->exec_SELECTgetSingleRow(
-			'count(uid) AS total',
+			'count(*) AS total',
 			'sys_file',
-			'storage=1 AND deleted=0'
+			'storage = 1'
 		);
 		$indexedFilesInMainStorage = $indexedFilesInMainStorage['total'];
 		$this->view->assign('indexedFilesInMainStorage', $indexedFilesInMainStorage);
