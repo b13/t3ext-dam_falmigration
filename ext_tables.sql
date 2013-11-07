@@ -25,5 +25,5 @@ CREATE TABLE sys_category (
 # Table structure for table 'tx_dam'
 #
 CREATE TABLE tx_dam (
-	KEY deletedRecords (deleted)
+	KEY deletedRecords (uid, deleted)
 );
