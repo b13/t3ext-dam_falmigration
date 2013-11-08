@@ -35,8 +35,13 @@ if (TYPO3_MODE == 'BE') {
 		'description'      => 'Migrates all Relations between DAM Categories and DAM files to FAL Files and Category.',
 	);
 
-	$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['extbase']['commandControllers'][] = 'B13\\DamFalmigration\\Controller\\DamMigrationCommandController';
+	$TYPO3_CONF_VARS['SC_OPTIONS']['scheduler']['tasks']['TYPO3\\CMS\\DamFalmigration\\Task\\MigrateMediaTagTask'] = array(
+		'extension'        => $_EXTKEY,
+		'title'            => 'DAM-FAL Migration: Migrate media-Tags in tt_content',
+		'description'      => 'Migrates all tt_content records which contains a media-tag and converts them to a FAL-Link-Tag.',
+	);
 
+	$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['extbase']['commandControllers'][] = 'B13\\DamFalmigration\\Controller\\DamMigrationCommandController';
 }
 
 $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['GLOBAL']['extTablesInclusion-PostProcessing'][] = 'EXT:dam_falmigration/Classes/Hooks/TcaCategory.php:Tx_DamFalmigration_Hooks_TcaCategory';
