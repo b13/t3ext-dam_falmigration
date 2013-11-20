@@ -145,7 +145,7 @@ class MigrateDamFrontendTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 			// update the refindex
 		if ($migratedFiles > 0) {
 				// update the reference index
-			$refIndexObj = t3lib_div::makeInstance('t3lib_refindex');
+			$refIndexObj = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Database\\ReferenceIndex');
 //			list($headerContent, $bodyContent, $errorCount) = $refIndexObj->updateIndex('check', FALSE);
 			list($headerContent, $bodyContent, $errorCount) = $refIndexObj->updateIndex('update', FALSE);
 		}

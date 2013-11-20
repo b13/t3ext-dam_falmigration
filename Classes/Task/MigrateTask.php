@@ -1,6 +1,5 @@
 <?php
-namespace TYPO3\CMS\DamFalmgiration\Task;
-
+namespace TYPO3\CMS\DamFalmigration\Task;
 /***************************************************************
  *  Copyright notice
  *
@@ -31,14 +30,14 @@ namespace TYPO3\CMS\DamFalmgiration\Task;
  * Finds all DAM records that have not been migrated yet
  * and adds a DB field "_migrateddamuid" to each FAL record
  * to connect the DAM and FAL DB records
- * 
+ *
  * currently it only works for files within the fileadmin
  * FILES DON'T GET MOVED somewhere else
  *
  * @author      Benjamin Mack <benni@typo3.org>
  *
  */
-class tx_damfalmigration_task_migratetask extends tx_scheduler_task {
+class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 
 		// the storage object for the fileadmin
 	protected $storageUid = 1;
@@ -46,7 +45,7 @@ class tx_damfalmigration_task_migratetask extends tx_scheduler_task {
 	/**
 	 * main function, needs to return TRUE or FALSE in order to tell
 	 * the scheduler whether the task went through smoothly
-	 * 
+	 *
 	 * @return boolean
 	 */
 	public function execute() {
@@ -71,26 +70,26 @@ class tx_damfalmigration_task_migratetask extends tx_scheduler_task {
 			$additionalWhereClause = '';
 		}
 
-			// get all DAM records that have not been migrated yet
-		$damRecords = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
-			'*',
-			'tx_dam',
-			'deleted=0 ' . $additionalWhereClause
-		);
-
 		$fileFactory = \TYPO3\CMS\Core\Resource\ResourceFactory::getInstance();
-		
+
 			// create the storage object
 		$storageObject = $fileFactory->getStorageObject($this->storageUid);
 
 			// DB-query to update all info
 		/** @var $fileRepository t3lib_file_Repository_FileRepository */
-		$fileRepository = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('\\TYPO3\\CMS\\Core\\Resource\\ResourceRepository');
+		$fileRepository = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Resource\\FileRepository');
 
 		$migratedFiles = 0;
-
 		$newFalRecords = array();
-		foreach ($damRecords as $damRecord) {
+
+		// get all DAM records that have not been migrated yet
+		$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
+			'*',
+			'tx_dam',
+			'deleted=0 ' . $additionalWhereClause
+		);
+		while ($damRecord = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res)) {
+
 			$damUid = $damRecord['uid'];
 			$fileIdentifier = $damRecord['file_path'] . $damRecord['file_name'];
 
@@ -100,9 +99,16 @@ class tx_damfalmigration_task_migratetask extends tx_scheduler_task {
 				$fullFileName = substr($fileIdentifier, 10);
 
 				// check if the DAM record is already indexed for FAL (based on the filename)
-				$fileObject = $storageObject->getFile($fullFileName);
-				if ($fileObject instanceof t3lib_File_AbstractFile) {
+				try {
+					$fileObject = $storageObject->getFile($fullFileName);
+				} catch(\TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException $e) {
+					// file not found jump to next file
+					continue;
+				} catch(\Exception $e) {
+					var_dump($e);
+				}
 
+				if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
 					// add the migrated uid of the DAM record to the FAL record
 					$updateData = array(
 						'_migrateddamuid' => $damUid
@@ -114,14 +120,14 @@ class tx_damfalmigration_task_migratetask extends tx_scheduler_task {
 						$updateData['description'] = $damRecord['description'];
 						$updateData['location_country'] = $damRecord['location_country'];
 					}
-					
+
 					$fileObject->updateProperties($updateData);
 					$fileRepository->update($fileObject);
-					
+
 					#$uid = $fileObject->getUid();
 					$migratedFiles++;
-					
-					
+
+
 				} else {
 					// no file object
 					// what to do?
@@ -138,8 +144,8 @@ class tx_damfalmigration_task_migratetask extends tx_scheduler_task {
 			$message = 'All files have been migrated.';
 		}
 
-		$messageObject = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('t3lib_FlashMessage', $message, $headline);
-		t3lib_FlashMessageQueue::addMessage($messageObject);
+		$messageObject = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
+		\TYPO3\CMS\Core\Messaging\FlashMessageQueue::addMessage($messageObject);
 
 			// it was always a success
 		return TRUE;

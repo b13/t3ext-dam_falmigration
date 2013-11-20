@@ -1,4 +1,5 @@
 <?php
+namespace TYPO3\CMS\DamFalmigration\Task;
 /***************************************************************
  *  Copyright notice
  *
@@ -31,7 +32,7 @@
  * @author      Benjamin Mack <benni@typo3.org>
  *
  */
-class tx_damfalmigration_task_migraterelationstask extends tx_scheduler_task {
+class MigrateRelationsTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 
 	/**
 	 * main function, needs to return TRUE or FALSE in order to tell
@@ -105,16 +106,16 @@ class tx_damfalmigration_task_migraterelationstask extends tx_scheduler_task {
 		
 		if ($migratedFiles > 0) {
 				// update the reference index
-			$refIndexObj = t3lib_div::makeInstance('t3lib_refindex');
+			$refIndexObj = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Database\\ReferenceIndex');
 //			list($headerContent, $bodyContent, $errorCount) = $refIndexObj->updateIndex('check', FALSE);
 			list($headerContent, $bodyContent, $errorCount) = $refIndexObj->updateIndex('update', FALSE);
 
-
-			$messageObject = t3lib_div::makeInstance('t3lib_FlashMessage',
+			$messageObject = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(
+				'TYPO3\\CMS\\Core\\Messaging\\FlashMessage',
 				'Migrated ' . $migratedFiles . ' relations. <br />' . nl2br($bodyContent),
 				'Migration successful'
 			);
-			t3lib_FlashMessageQueue::addMessage($messageObject);
+			\TYPO3\CMS\Core\Messaging\FlashMessageQueue::addMessage($messageObject);
 		}
 
 			// it was always a success
