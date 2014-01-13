@@ -35,5 +35,7 @@ if (TYPO3_MODE == 'BE') {
 		'description'      => 'Migrates all Relations between DAM Categories and DAM files to FAL Files and Category.',
 	);
 
+	$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['extbase']['commandControllers'][] = 'B13\\DamFalmigration\\Controller\\DamMigrationCommandController';
+
 }
 
