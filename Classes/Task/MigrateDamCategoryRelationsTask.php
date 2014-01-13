@@ -160,7 +160,7 @@ class MigrateDamCategoryRelationsTask extends \TYPO3\CMS\Scheduler\Task\Abstract
 
 		$select = 'uid, _migrateddamuid AS damuid';
 		$from = 'sys_file';
-		$where = '_migrateddamuid>0 AND deleted=0';
+		$where = '_migrateddamuid>0';
 		$index = 'damuid';
 
 		$migratedRecords = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows($select,$from,$where,'','','',$index);

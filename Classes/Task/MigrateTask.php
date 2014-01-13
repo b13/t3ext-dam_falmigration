@@ -55,7 +55,7 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 		$migratedRecords = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
 			'uid, _migrateddamuid AS damuid',
 			'sys_file',
-			'_migrateddamuid>0 AND deleted=0',
+			'_migrateddamuid>0',
 			'',	// group by
 			'', // order by
 			'', // limit
@@ -96,6 +96,7 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 			// right now we only support files in fileadmin/
 			if (\TYPO3\CMS\Core\Utility\GeneralUtility::isFirstPartOfStr($fileIdentifier, 'fileadmin/') === TRUE) {
 				// strip away the "fileadmin/" prefix
+				echo 'Indexing ' . $fileIdentifier . CRLF;
 				$fullFileName = substr($fileIdentifier, 10);
 
 				// check if the DAM record is already indexed for FAL (based on the filename)
@@ -105,7 +106,7 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 					// file not found jump to next file
 					continue;
 				} catch(\Exception $e) {
-					var_dump($e);
+					echo 'File not found: ' . $fullFileName . CRLF;
 				}
 
 				if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
@@ -121,10 +122,12 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 						$updateData['location_country'] = $damRecord['location_country'];
 					}
 
-					$fileObject->updateProperties($updateData);
-					$fileRepository->update($fileObject);
-
-					#$uid = $fileObject->getUid();
+					$uid = $fileObject->getUid();
+					$GLOBALS['TYPO3_DB']->exec_UPDATEquery(
+						'sys_file',
+						'uid=' . $uid,
+						$updateData
+					);
 					$migratedFiles++;
 
 
@@ -144,8 +147,10 @@ class MigrateTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 			$message = 'All files have been migrated.';
 		}
 
-		$messageObject = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
-		\TYPO3\CMS\Core\Messaging\FlashMessageQueue::addMessage($messageObject);
+		if (!TYPO3_cliMode) {
+			$messageObject = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
+			\TYPO3\CMS\Core\Messaging\FlashMessageQueue::addMessage($messageObject);
+		}
 
 			// it was always a success
 		return TRUE;

@@ -46,7 +46,7 @@ class MigrateRelationsTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 		$falRecords = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
 			'uid, _migrateddamuid AS damuid',
 			'sys_file',
-			'_migrateddamuid>0 AND deleted=0',
+			'_migrateddamuid>0',
 			'',	// group by
 			'', // order by
 			'', // limit
