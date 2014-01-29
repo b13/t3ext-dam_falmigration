@@ -59,6 +59,8 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 			'deleted=0 AND uid NOT IN (SELECT _migrateddamuid FROM sys_file WHERE _migrateddamuid > 0)'
 		);
 
+		$this->outputLine('Found ' . count($damRecords) . ' DAM records with no connected sys_file entry');
+
 		foreach ($damRecords as $damRecord) {
 
 			$damUid = $damRecord['uid'];
@@ -73,6 +75,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 			$fullFileName = substr($fileIdentifier, 10);
 
 			// check if the DAM record is already indexed for FAL (based on the filename)
+			$fileObject = NULL;
 			try {
 				$fileObject = $storageObject->getFile($fullFileName);
 			} catch(\TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException $e) {
@@ -80,17 +83,24 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 				continue;
 			} catch(\Exception $e) {
 				$this->outputLine('File not found: "' . $fullFileName . '"');
+				continue;
 			}
 
 			// add the migrated uid of the DAM record to the FAL record
 			if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
+				if ($fileObject->isMissing()) {
+					$this->outputLine('FAL did not find any file resource for DAM record. DAM uid: ' . $damUid . ': "' . $fullFileName . '"');
+					continue;
+				}
 				$GLOBALS['TYPO3_DB']->exec_UPDATEquery(
 					'sys_file',
 					'uid=' . $fileObject->getUid(),
 					array('_migrateddamuid' => $damUid)
 				);
 				$migratedFiles++;
-				$this->outputLine('DAM File is now indexed for FAL: "' . $fullFileName . '"');
+				$this->outputLine('DAM File is now indexed for FAL. FAL uid: ' . $fileObject->getUid() . ', DAM uid: ' . $damUid . ': "' . $fullFileName . '"');
+			} else {
+				$this->outputLine('FAL did not find any file resource for DAM record. DAM uid: ' . $damUid . ': "' . $fullFileName . '"');
 			}
 		}
 
