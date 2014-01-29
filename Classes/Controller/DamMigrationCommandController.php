@@ -34,6 +34,76 @@ namespace B13\DamFalmigration\Controller;
 class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\CommandController {
 
 	/**
+	 * goes through all DAM files and checks if they have a counterpart in the sys_file
+	 * table. If not, fetch the file (via the storage, which indexes the file directly)
+	 * and update the DAM DB table
+	 * Please note that this does not migrate the metadata
+	 * this command can be run multiple times
+	 *
+	 * @param \string $storageUid the UID of the storage (usually 1, don't modify if you are unsure)
+	 */
+	public function connectDamRecordsWithSysFileCommand($storageUid = 1) {
+
+		$fileFactory = \TYPO3\CMS\Core\Resource\ResourceFactory::getInstance();
+
+		// create the storage object
+		$storageObject = $fileFactory->getStorageObject($storageUid);
+		$migratedFiles = 0;
+
+		// get all DAM records that have not been migrated yet
+		$damRecords = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+			'*',
+			'tx_dam',
+			// check for all FAL records that are there, that have been migrated already
+			// seen by the "_migrateddamuid" flag
+			'deleted=0 AND uid NOT IN (SELECT _migrateddamuid FROM sys_file WHERE _migrateddamuid > 0)'
+		);
+
+		foreach ($damRecords as $damRecord) {
+
+			$damUid = $damRecord['uid'];
+			$fileIdentifier = $damRecord['file_path'] . $damRecord['file_name'];
+
+			// right now, only files in fileadmin/ are supported
+			if (\TYPO3\CMS\Core\Utility\GeneralUtility::isFirstPartOfStr($fileIdentifier, 'fileadmin/') === FALSE) {
+				continue;
+			}
+
+			// strip away the "fileadmin/" prefix
+			$fullFileName = substr($fileIdentifier, 10);
+
+			// check if the DAM record is already indexed for FAL (based on the filename)
+			try {
+				$fileObject = $storageObject->getFile($fullFileName);
+			} catch(\TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException $e) {
+				// file not found jump to next file
+				continue;
+			} catch(\Exception $e) {
+				$this->outputLine('File not found: "' . $fullFileName . '"');
+			}
+
+			// add the migrated uid of the DAM record to the FAL record
+			if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
+				$GLOBALS['TYPO3_DB']->exec_UPDATEquery(
+					'sys_file',
+					'uid=' . $fileObject->getUid(),
+					array('_migrateddamuid' => $damUid)
+				);
+				$migratedFiles++;
+				$this->outputLine('DAM File is now indexed for FAL: "' . $fullFileName . '"');
+			}
+		}
+
+		// print a message
+		if ($migratedFiles > 0) {
+			$this->outputLine('Migration successful: Migrated ' . $migratedFiles . ' files.');
+		} else {
+			$this->outputLine('Migration not needed: All files have been migrated already.');
+		}
+	}
+
+
+	/**
 	 * migrates DAM metadata to FAL metadata
 	 * searches for all sys_file records that don't have any titles yet
 	 * with a connection to a _dammigration record
@@ -321,7 +391,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 				$affectedRecords++;
 			}
 		}
-		$this->outputLine('Cleaned up ' . $affectedRows . ' duplicates of references');
+		$this->outputLine('Cleaned up ' . $affectedRecords . ' duplicates of references');
 	}
 
 	/**
