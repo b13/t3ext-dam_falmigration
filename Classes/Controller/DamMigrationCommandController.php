@@ -24,6 +24,8 @@ namespace B13\DamFalmigration\Controller;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\DamFalmigration\Service\MigrateRelations;
 
 /**
  * Command Controller to execute DAM to FAL Migration scripts
@@ -412,5 +414,27 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 			$refIndexObj = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Database\\ReferenceIndex');
 //			list($headerContent, $bodyContent, $errorCount) = $refIndexObj->updateIndex('check', FALSE);
 			list($headerContent, $bodyContent, $errorCount) = $refIndexObj->updateIndex('update', FALSE);
+	}
+
+	/**
+	 * migrate relations to dam records that dam_ttcontent
+	 * and dam_uploads introduced
+	 *
+	 * it is highly recommended to update the ref index afterwards
+	 */
+	public function migrateRelationsCommand() {
+		/** @var MigrateRelations $migrateRelationsService */
+		$migrateRelationsService = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRelations');
+		$message = $migrateRelationsService->execute();
+
+		if($message->getTitle()) {
+			$this->outputLine($message->getTitle());
+		}
+		if($message->getMessage()) {
+			$this->outputLine($message->getMessage());
+		}
+		if($message->getSeverity() !== FlashMessage::OK) {
+			$this->sendAndExit(1);
+		}
 	}
 }

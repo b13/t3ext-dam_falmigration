@@ -26,6 +26,7 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
 
 /**
  * Migrate DAM relations to FAL relations
@@ -43,10 +44,9 @@ class MigrateRelations extends AbstractService {
 
 	/**
 	 * main function
-	 * return TRUE or FALSE
 	 *
 	 * @throws \Exception
-	 * @return boolean
+	 * @return FlashMessage
 	 */
 	public function execute() {
 		if ($this->isTableAvailable('tx_dam_mm_ref')) {
@@ -89,8 +89,7 @@ class MigrateRelations extends AbstractService {
 					$this->amountOfMigratedRecords++;
 				}
 			}
-			$this->addResultMessage();
-			return TRUE;
+			return $this->getResultMessage();
 		} else {
 			throw new \Exception('Extension tx_dam and dam_ttcontent is not installed. So there is nothing to migrate.');
 		}

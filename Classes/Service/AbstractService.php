@@ -26,6 +26,7 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -92,9 +93,9 @@ abstract class AbstractService {
 	/**
 	 * add flashmessage if migration was successful or not.
 	 *
-	 * @return void
+	 * @return FlashMessage
 	 */
-	protected function addResultMessage() {
+	protected function getResultMessage() {
 		if ($this->amountOfMigratedRecords > 0) {
 			$headline = LocalizationUtility::translate('migrationSuccessful', 'dam_falmigration');
 			$message = LocalizationUtility::translate('migratedFiles', 'dam_falmigration', array(0 => $this->amountOfMigratedRecords));
@@ -104,8 +105,7 @@ abstract class AbstractService {
 		}
 
 		$messageObject = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
-		// addMessage is a magic method realized by __call()
-		FlashMessageQueue::addMessage($messageObject);
+		return $messageObject;
 	}
 
 }

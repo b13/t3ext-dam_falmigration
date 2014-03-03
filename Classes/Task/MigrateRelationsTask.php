@@ -25,6 +25,8 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
 use TYPO3\CMS\DamFalmigration\Service\MigrateRelations;
 
 /**
@@ -48,6 +50,8 @@ class MigrateRelationsTask extends AbstractTask {
 		$this->init();
 		/** @var MigrateRelations $migrateRelationsService */
 		$migrateRelationsService = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRelations');
-		return $migrateRelationsService->execute();
+		$message = $migrateRelationsService->execute();
+		FlashMessageQueue::addMessage($message);
+		return $message->getSeverity() === FlashMessage::OK;
 	}
 }
