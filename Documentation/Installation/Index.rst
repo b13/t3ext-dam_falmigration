@@ -44,7 +44,3 @@ Next pages:
    :maxdepth: 5
    :glob:
    :titlesonly:
-
-   *
-
-:ref:`Sitemap <sitemap>`
