@@ -24,15 +24,6 @@ EXT: dam_falmigration - Migrate your Digital Asset Management (dam) data to File
 .. this link to a sitemap is very convenient as long as there isn't an
 automatic sitemap in the documentation layout
 
-Sitemap
-=======
-
-:ref:`Sitemap <sitemap>`
-
-((This "Sitemap" chapter is just a model. Keep it, change it,
-or remove it - as you like.))
-
-
 
 
 Info
@@ -77,11 +68,9 @@ to TYPO3s new file abstraction layer (FAL)
 Next pages:
 
 .. toctree::
-:maxdepth: 5
-	   :glob:
-	   :titlesonly:
+   :maxdepth: 5
+   :glob:
+   :titlesonly:
 
-	   Installation/Index
-	   Execution/Index
-
-:ref:`Sitemap <sitemap>`
+   Installation/Index
+   Execution/Index
