@@ -57,7 +57,7 @@ class MigrateRelations extends AbstractService {
 					'tstamp' => time(),
 					'crdate' => time(),
 					'cruser_id' => $GLOBALS['BE_USER']->user['uid'],
-					'sorting' => $damRelation['sorting'],
+					'sorting_foreign' => $damRelation['sorting_foreign'],
 					'uid_local' => $damRelation['sys_file_uid'],
 					'uid_foreign' => $damRelation['uid_foreign'],
 					'tablenames' => $damRelation['tablenames'],
