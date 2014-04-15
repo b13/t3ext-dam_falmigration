@@ -58,6 +58,7 @@ class MigrateDamCategoryRelationsTask extends AbstractTask {
 					'sorting' => $categoryRelation['sorting'],
 					'sorting_foreign' => $categoryRelation['sorting_foreign'],
 					'tablenames' => 'sys_file',
+					'fieldname' => 'categories'
 				);
 
 				if (!$this->checkIfSysCategoryRelationExists($categoryRelation)) {
