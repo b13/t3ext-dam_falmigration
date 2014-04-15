@@ -53,11 +53,11 @@ class MigrateDamCategoryRelationsTask extends AbstractTask {
 			$categoryRelations = $this->getCategoryRelationsWhereSysCategoryExists();
 			foreach ($categoryRelations as $categoryRelation) {
 				$insertData = array(
-					'uid_local' => $categoryRelation['sys_file_uid'],
-					'uid_foreign' => $categoryRelation['sys_category_uid'],
+					'uid_local' => $categoryRelation['sys_category_uid'],
+					'uid_foreign' => $categoryRelation['sys_file_uid'],
 					'sorting' => $categoryRelation['sorting'],
 					'sorting_foreign' => $categoryRelation['sorting_foreign'],
-					'tablenames' => 'sys_file',
+					'tablenames' => 'sys_file_metadata',
 					'fieldname' => 'categories'
 				);
 
