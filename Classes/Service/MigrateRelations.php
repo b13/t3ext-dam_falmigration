@@ -144,6 +144,7 @@ class MigrateRelations extends AbstractService {
 			'uid_local = ' . $damRelation['sys_file_uid'] .
 			' AND uid_foreign = ' . $damRelation['uid_foreign'] .
 			' AND tablenames = ' . $this->database->fullQuoteStr($damRelation['tablenames'], 'sys_file_reference') .
+			' AND fieldname = ' . $this->database->fullQuoteStr($this->getColForFieldName($damRelation), 'sys_file_reference') .
 			' AND deleted = 0'
 		);
 		if ($amountOfExistingRecords) {
