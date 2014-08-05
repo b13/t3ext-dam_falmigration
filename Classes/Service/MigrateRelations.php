@@ -101,15 +101,15 @@ class MigrateRelations extends AbstractService {
 	 * this is needed by sys_file_reference records
 	 *
 	 * @param array $damRelation
-	 * @return mixed
+	 * @return integer
 	 */
 	protected function getPidOfForeignRecord(array $damRelation) {
-		$record = BackendUtility::getRecord(
+		$record = $GLOBALS['TYPO3_DB']->exec_SELECTgetSingleRow(
+			'pid',
 			$damRelation['tablenames'],
-			$damRelation['uid_foreign'],
-			'pid', '', FALSE
+			'uid=' . (int)$damRelation['uid_foreign']
 		);
-		return $record['pid'];
+		return $record['pid'] ?: 0;
 	}
 
 	/**
