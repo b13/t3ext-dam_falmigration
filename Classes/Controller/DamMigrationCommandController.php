@@ -122,23 +122,42 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	 */
 	public function migrateDamMetadataCommand() {
 		$recordsToMigrate = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
-			'DISTINCT m.uid AS metadata_uid, f._migrateddamuid AS damuid, d.title, d.description, d.alt_text',
+			'DISTINCT m.uid AS metadata_uid, f._migrateddamuid AS damuid, d.*',
 			'sys_file f, sys_file_metadata m, tx_dam d',
 			'm.file=f.uid AND f._migrateddamuid=d.uid AND f._migrateddamuid > 0 AND m.title IS NULL'
 		);
 
 		$this->outputLine('Found ' . count($recordsToMigrate) . ' sys_file_metadata records that have no title but associated with a DAM record that has a title');
-		
+
 		$migratedRecords = 0;
+		$hasAdvancedMetadata = \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::isLoaded('filemetadata');
 		foreach ($recordsToMigrate as $rec) {
+			$metaData = array(
+				'title' => $rec['title'],
+				'description' => $rec['description'],
+				'alternative' => $rec['alt_text']
+			);
+			if ($hasAdvancedMetadata) {
+				$metaData['visible'] = $rec['hidden'];
+				$metaData['keywords'] = $rec['keywords'];
+				$metaData['caption'] = $rec['caption'];
+				$metaData['publisher'] = $rec['publisher'];
+				$metaData['location_country'] = $rec['loc_country'];
+				$metaData['location_city'] = $rec['loc_city'];
+				$metaData['download_name'] = $rec['file_dl_name'];
+				$metaData['creator'] = $rec['creator'];
+				$metaData['fe_groups'] = $rec['fe_group'];
+				$metaData['content_creation_date'] = $rec['date_cr'];
+				$metaData['content_modification_date'] = $rec['date_mod'];
+				$metaData['note'] = $rec['instructions'];
+				$metaData['unit'] = $rec['height_unit'];
+				$metaData['color_space'] = $rec['color_space'];
+				$metaData['language'] = $rec['language'];
+			}
 			$GLOBALS['TYPO3_DB']->exec_UPDATEquery(
 				'sys_file_metadata',
-				'uid=' . intval($rec['metadata_uid']),
-				array(
-					'title' => $rec['title'],
-					'description' => $rec['description'],
-					'alternative' => $rec['alt_text']
-				)
+				'uid = ' . intval($rec['metadata_uid']),
+				$metaData
 			);
 			$migratedRecords++;
 		}
@@ -204,7 +223,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	/**
 	 * migrate all DAM categories to sys_file_collection records,
 	 * while also migrating the references if they don't exist yet
-	 * as a pre-requisite, there needs to be sys_file records that 
+	 * as a pre-requisite, there needs to be sys_file records that
 	 * have been migrated from DAM
 	 *
 	 * @param \string $migrateReferences whether just the categories should be migrated or the references as well
@@ -229,7 +248,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 				'tx_dam_mm_cat',
 				'uid_foreign IN (' . implode(',', array_keys($damCategories)) . ')'
 			);
-			
+
 			foreach ($mmRelations as $relation) {
 				$damCategories[$relation['categoryuid']]['files'][] = $falRecords[$relation['damuid']]['uid'];
 			}
@@ -329,7 +348,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 			'damcatuid'
 		);
 
-		// find all dam_frontend plugins 
+		// find all dam_frontend plugins
 		$damFrontendPlugins = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
 			'pi_flexform, list_type, CType, uid, pid, deleted',
 			'tt_content',
@@ -345,7 +364,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 		}
 
 		$this->outputLine('Found ' . count($damFrontendPlugins) . ' plugins of dam_frontend_pi1');
-		
+
 
 		// replace the plugins with the new ones
 		foreach ($damFrontendPlugins as $plugin) {
