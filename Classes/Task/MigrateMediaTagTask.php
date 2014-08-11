@@ -49,10 +49,10 @@ class MigrateMediaTagTask extends AbstractTask {
 
 		$ttContentRecords = $this->getTtContentRecordsWithMediaTag();
 		foreach ($ttContentRecords as $ttContentRecord) {
-			$results = preg_match_all('/<media ([0-9]{1,}) (.*?)>(.*?)<\/media>/', $ttContentRecord['bodytext'], $matches);
+			$results = preg_match_all('/<media ([0-9]{1,})(.*?)>(.*?)<\/media>/', $ttContentRecord['bodytext'], $matches);
 			if ($results) {
 				foreach ($matches[0] as $key => $mediaTag) {
-					$linkTag = '<link file:' . $this->getUidOfSysFileRecord($matches[1][$key]) . ' ' . $matches[2][$key] . '>' . $matches[3][$key] . '</link>';
+					$linkTag = '<link file:' . $this->getUidOfSysFileRecord(trim($matches[1][$key])) . ' ' . $matches[2][$key] . '>' . $matches[3][$key] . '</link>';
 					$ttContentRecord['bodytext'] = str_replace($mediaTag, $linkTag, $ttContentRecord['bodytext']);
 				}
 				$this->database->exec_UPDATEquery(
