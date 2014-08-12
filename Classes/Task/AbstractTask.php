@@ -77,17 +77,7 @@ abstract class AbstractTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 		$this->storageObject = $fileFactory->getStorageObject($this->storageUid);
 	}
 
-	/**
-	 * check if given table exists in current database
-	 * we can't check TCA or for installed extensions because dam and dam_ttcontent are not available for TYPO3 6.2
-	 *
-	 * @param $table
-	 * @return bool
-	 */
-	protected function isTableAvailable($table) {
-		$tables = $this->database->admin_get_tables();
-		return array_key_exists($table, $tables);
-	}
+
 
 	/**
 	 * add flashmessage if migration was successful or not.

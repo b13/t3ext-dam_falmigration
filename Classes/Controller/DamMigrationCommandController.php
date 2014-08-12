@@ -26,6 +26,7 @@ namespace B13\DamFalmigration\Controller;
  ***************************************************************/
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\DamFalmigration\Service\MigrateRelations;
+use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
  * Command Controller to execute DAM to FAL Migration scripts
@@ -456,4 +457,55 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 			$this->sendAndExit(1);
 		}
 	}
+
+	/**
+	 * Migrate DAM categories to FAL categories
+	 *
+	 * @param integer $initialParentUid Initial parent UID
+	 * @param integer $storagePid Store on PID
+	 * @return bool
+	 */
+	public function migrateDamCategoriesCommand($initialParentUid = 0, $storagePid) {
+		$databaseHelper = \B13\DamFalmigration\Helper\DatabaseHelper::getInstance();
+		if ($databaseHelper->isTableAvailable('tx_dam_cat')) {
+			// if a parent uid is given but not available, set initial uid to 0
+			if ($initialParentUid > 0 && !$databaseHelper->checkInitialParentAvailable()) {
+				$initialParentUid = 0;
+			}
+
+			// $parrentUidMap[oldUid] = 'newUid';
+			$parentUidMap = array();
+			$parentUidMap[0] = $initialParentUid;
+
+			//******** STEP 1 - Get all categories *********//
+			$damCategories = $databaseHelper->getAllDamCategoriesWithItemCount();
+
+			//******** STEP 2 - re-sort category array *********//
+			$damCategories = \TYPO3\CMS\DamFalmigration\Utility\GeneralUtility::sortCategories($damCategories, 0);
+
+			//******** STEP 3 - Build category tree *********//
+			$amountOfMigratedRecords = 0;
+			foreach($damCategories as $category) {
+
+				$newParentUid = $parentUidMap[$category['parent_id']];
+
+				// create the new category in table sys_category
+				$newUid = $databaseHelper->createNewCategory($category, $newParentUid, $storagePid);
+
+				$parentUidMap[$category['uid']] = $newUid;
+				$amountOfMigratedRecords++;
+			}
+
+			if ($amountOfMigratedRecords > 0) {
+				$this->outputLine(LocalizationUtility::translate('migrationSuccessful', 'dam_falmigration'));
+				$this->outputLine(LocalizationUtility::translate('migratedFiles', 'dam_falmigration', array(0 => $amountOfMigratedRecords)));
+			} else {
+				$this->outputLine(LocalizationUtility::translate('migrationNotNecessary', 'dam_falmigration'));
+				$this->outputLine(LocalizationUtility::translate('allFilesMigrated', 'dam_falmigration', array(0 => $amountOfMigratedRecords)));
+			}
+		} else {
+			$this->outputLine('Table tx_dam_cat is not available. So there is nothing to migrate.');
+		}
+	}
+
 }
