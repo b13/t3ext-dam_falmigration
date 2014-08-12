@@ -106,7 +106,7 @@ class DatabaseHelper {
 	 *
 	 * @return array
 	 */
-	public function getAllDamCategoriesWithItemCount() {
+	public function getAllNotYetMigratedDamCategoriesWithItemCount() {
 		// this query can also count all related categories (sys_category.items)
 		$damCategories = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
 			'uid, parent_id, tstamp, sorting, crdate, cruser_id, hidden, title, description, (SELECT COUNT(*) FROM tx_dam_mm_cat WHERE tx_dam_mm_cat.uid_foreign = tx_dam_cat.uid) as items',
@@ -114,6 +114,26 @@ class DatabaseHelper {
 			'deleted = 0',
 			'', 'parent_id', ''
 		);
+
+		// fetch all already imported sys_categories
+		$importedSysCategories = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+			'_migrateddamcatuid',
+			'sys_category',
+			'deleted = 0 AND _migrateddamcatuid > 0',
+			'',
+			'',
+			'',
+			'_migrateddamcatuid'
+		);
+
+		// remove already imported categories from DAM categories to be imported
+		foreach ($damCategories as $key => $damCategory) {
+			//\TYPO3\CMS\Core\Utility\DebugUtility::debug($damCategory);
+			if (array_key_exists($damCategory['uid'], $importedSysCategories)) {
+				unset($damCategories[$key]);
+			}
+		}
+
 		return $damCategories;
 	}
 

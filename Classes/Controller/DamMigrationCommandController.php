@@ -478,7 +478,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 			$parentUidMap[0] = $initialParentUid;
 
 			//******** STEP 1 - Get all categories *********//
-			$damCategories = $databaseHelper->getAllDamCategoriesWithItemCount();
+			$damCategories = $databaseHelper->getAllNotYetMigratedDamCategoriesWithItemCount();
 
 			//******** STEP 2 - re-sort category array *********//
 			$damCategories = \TYPO3\CMS\DamFalmigration\Utility\GeneralUtility::sortCategories($damCategories, 0);
