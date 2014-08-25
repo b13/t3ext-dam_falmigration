@@ -73,7 +73,8 @@ class MigrateRelations extends AbstractService {
 						'sys_file_reference',
 						$insertData
 					);
-					$this->updateReferenceIndex($this->database->sql_insert_id());
+					$newRelationsRecordUid = $this->database->sql_insert_id();
+					$this->updateReferenceIndex($newRelationsRecordUid);
 
 					// pageLayoutView-object needs image to be set something higher than 0
 					if ($damRelation['tablenames'] === 'tt_content' && $this->getColForFieldName($damRelation) === 'image') {
@@ -83,6 +84,20 @@ class MigrateRelations extends AbstractService {
 								'tt_content',
 								'uid = ' . $damRelation['uid_foreign'],
 								array('image' => 1)
+							);
+						}
+
+						// migrate image_links from tt_content.
+						$linkFromContentRecord = $this->database->exec_SELECTgetSingleRow(
+							'image_link',
+							'tt_content',
+							'uid = ' . $damRelation['uid_foreign']
+						);
+						if (!empty($linkFromContentRecord) && !empty($linkFromContentRecord['image_link'])) {
+							$this->database->exec_UPDATEquery(
+								'sys_file_reference',
+								'uid = ' . $newRelationsRecordUid,
+								array('link' => $linkFromContentRecord['image_link'])
 							);
 						}
 					}
@@ -100,15 +115,15 @@ class MigrateRelations extends AbstractService {
 	 * this is needed by sys_file_reference records
 	 *
 	 * @param array $damRelation
-	 * @return mixed
+	 * @return integer
 	 */
 	protected function getPidOfForeignRecord(array $damRelation) {
-		$record = BackendUtility::getRecord(
+		$record = $GLOBALS['TYPO3_DB']->exec_SELECTgetSingleRow(
+			'pid',
 			$damRelation['tablenames'],
-			$damRelation['uid_foreign'],
-			'pid', '', FALSE
+			'uid=' . (int)$damRelation['uid_foreign']
 		);
-		return $record['pid'];
+		return $record['pid'] ?: 0;
 	}
 
 	/**
@@ -156,7 +171,7 @@ class MigrateRelations extends AbstractService {
 
 	/**
 	 * col for fieldname was saved in col "ident"
-	 * But: If dam_ttcontent is installed fieldName is "image"
+	 * But: If dam_ttcontent is installed fieldName is "image" for images and "media" for uploads
 	 *
 	 * @param array $damRelation
 	 * @return string
@@ -164,6 +179,8 @@ class MigrateRelations extends AbstractService {
 	protected function getColForFieldName(array $damRelation) {
 		if ($damRelation['tablenames'] == 'tt_content' && $damRelation['ident'] == 'tx_damttcontent_files') {
 			$fieldName = 'image';
+		} elseif ($damRelation['tablenames'] == 'tt_content'  && $damRelation['ident'] == 'tx_damttcontent_files_upload') {
+			$fieldName = 'media';
 		} else {
 			$fieldName = $damRelation['ident'];
 		}
