@@ -50,6 +50,7 @@ class MigrateRelations extends AbstractService {
 	 */
 	public function execute() {
 		if ($this->isTableAvailable('tx_dam_mm_ref')) {
+			$numberImportedRelationsByContentElement = array();
 			$damRelations = $this->getDamReferencesWhereSysFileExists();
 			foreach ($damRelations as $damRelation) {
 				$insertData = array(
@@ -68,6 +69,11 @@ class MigrateRelations extends AbstractService {
 					'alternative' => $damRelation['alternative'],
 				);
 
+				// we need an array holding the already migrated file-relations to choose the right line of the imagecaption-field.
+				if ($insertData['tablenames'] == 'tt_content' && ($insertData['fieldname'] == 'media' || $insertData['fieldname'] == 'image')) {
+					$numberImportedRelationsByContentElement[$insertData['uid_foreign']] ++;
+				}
+
 				if (!$this->checkIfSysFileRelationExists($damRelation)) {
 					$this->database->exec_INSERTquery(
 						'sys_file_reference',
@@ -77,28 +83,55 @@ class MigrateRelations extends AbstractService {
 					$this->updateReferenceIndex($newRelationsRecordUid);
 
 					// pageLayoutView-object needs image to be set something higher than 0
-					if ($damRelation['tablenames'] === 'tt_content' && $this->getColForFieldName($damRelation) === 'image') {
-						$tcaConfig = $GLOBALS['TCA']['tt_content']['columns']['image']['config'];
-						if ($tcaConfig['type'] === 'inline') {
-							$this->database->exec_UPDATEquery(
-								'tt_content',
-								'uid = ' . $damRelation['uid_foreign'],
-								array('image' => 1)
-							);
-						}
+					if ($damRelation['tablenames'] === 'tt_content') {
+						if ($insertData['fieldname'] === 'image') {
+							$tcaConfig = $GLOBALS['TCA']['tt_content']['columns']['image']['config'];
+							if ($tcaConfig['type'] === 'inline') {
+								$this->database->exec_UPDATEquery(
+									'tt_content',
+									'uid = ' . $damRelation['uid_foreign'],
+									array('image' => 1)
+								);
+							}
 
-						// migrate image_links from tt_content.
-						$linkFromContentRecord = $this->database->exec_SELECTgetSingleRow(
-							'image_link',
-							'tt_content',
-							'uid = ' . $damRelation['uid_foreign']
-						);
-						if (!empty($linkFromContentRecord) && !empty($linkFromContentRecord['image_link'])) {
-							$this->database->exec_UPDATEquery(
-								'sys_file_reference',
-								'uid = ' . $newRelationsRecordUid,
-								array('link' => $linkFromContentRecord['image_link'])
+							// migrate image_links from tt_content.
+							$linkFromContentRecord = $this->database->exec_SELECTgetSingleRow(
+								'image_link,imagecaption',
+								'tt_content',
+								'uid = ' . $damRelation['uid_foreign']
 							);
+							if (!empty($linkFromContentRecord)) {
+								$imageLinks = explode(chr(10),$linkFromContentRecord['image_link']);
+								$imageCaptions = explode(chr(10),$linkFromContentRecord['imagecaption']);
+								$this->database->exec_UPDATEquery(
+									'sys_file_reference',
+									'uid = ' . $newRelationsRecordUid,
+									array(
+										'link' => $imageLinks[$numberImportedRelationsByContentElement[$insertData['uid_foreign']]-1],
+										'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']]-1]
+										
+									)
+								);
+							}
+						} elseif ($insertData['fieldname'] === 'media') {
+							// migrate captions from tt_content upload elements
+							$linkFromContentRecord = $this->database->exec_SELECTgetSingleRow(
+								'imagecaption',
+								'tt_content',
+								'uid = ' . $damRelation['uid_foreign']
+							);
+
+
+							if (!empty($linkFromContentRecord)) {
+								$imageCaptions = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(chr(10),$linkFromContentRecord['imagecaption']);
+								$this->database->exec_UPDATEquery(
+									'sys_file_reference',
+									'uid = ' . $newRelationsRecordUid,
+									array(
+										'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']]-1]
+									)
+								);
+							}
 						}
 					}
 					$this->amountOfMigratedRecords++;
@@ -137,7 +170,9 @@ class MigrateRelations extends AbstractService {
 		$rows = $this->database->exec_SELECTgetRows(
 			'MM.*, SF.uid as sys_file_uid, MD.title, MD.description, MD.alternative',
 			'tx_dam_mm_ref MM, sys_file SF, sys_file_metadata MD',
-			'MD.file = SF.uid AND SF._migrateddamuid = MM.uid_local'
+			'MD.file = SF.uid AND SF._migrateddamuid = MM.uid_local',
+			'',
+			'MM.sorting ASC'
 		);
 		if ($rows === NULL) {
 			throw new \Exception('SQL-Error in getDamReferencesWhereSysFileExists()', 1382353670);
