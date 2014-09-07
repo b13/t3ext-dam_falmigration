@@ -24,7 +24,9 @@ namespace B13\DamFalmigration\Controller;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\DamFalmigration\Service\MigrateRelations;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
@@ -70,7 +72,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 			$fileIdentifier = $damRecord['file_path'] . $damRecord['file_name'];
 
 			// right now, only files in fileadmin/ are supported
-			if (\TYPO3\CMS\Core\Utility\GeneralUtility::isFirstPartOfStr($fileIdentifier, 'fileadmin/') === FALSE) {
+			if (GeneralUtility::isFirstPartOfStr($fileIdentifier, 'fileadmin/') === FALSE) {
 				continue;
 			}
 
@@ -358,7 +360,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 		);
 
 		foreach ($damFrontendPlugins as &$plugin) {
-			$plugin['pi_flexform'] = \TYPO3\CMS\Core\Utility\GeneralUtility::xml2array($plugin['pi_flexform']);
+			$plugin['pi_flexform'] = GeneralUtility::xml2array($plugin['pi_flexform']);
 			$plugin['pi_flexform'] = $plugin['pi_flexform']['data'];
 			$plugin['damfrontend_staticCatSelection'] = $plugin['pi_flexform']['sSelection']['lDEF']['useStaticCatSelection']['vDEF'];
 			$plugin['damfrontend_usedCategories'] = $plugin['pi_flexform']['sSelection']['lDEF']['catMounts']['vDEF'];
@@ -370,7 +372,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 		// replace the plugins with the new ones
 		foreach ($damFrontendPlugins as $plugin) {
 
-			$usedDamCategories = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(',', $plugin['damfrontend_usedCategories'], TRUE);
+			$usedDamCategories = GeneralUtility::trimExplode(',', $plugin['damfrontend_usedCategories'], TRUE);
 			$fileCollections = array();
 
 			foreach ($usedDamCategories as $damCategoryUid) {
@@ -431,7 +433,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	 */
 	public function updateReferenceIndexCommand() {
 				// update the reference index
-			$refIndexObj = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Database\\ReferenceIndex');
+			$refIndexObj = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Database\\ReferenceIndex');
 //			list($headerContent, $bodyContent, $errorCount) = $refIndexObj->updateIndex('check', FALSE);
 			list($headerContent, $bodyContent, $errorCount) = $refIndexObj->updateIndex('update', FALSE);
 	}
@@ -496,6 +498,10 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 				$amountOfMigratedRecords++;
 			}
 
+			//******** STEP 3 - Migrate DAM category mountpoints to sys_category permissions *********//
+			$this->migrateDamCategoryMountsToSysCategoryPerms('be_users');
+			$this->migrateDamCategoryMountsToSysCategoryPerms('be_groups');
+
 			if ($amountOfMigratedRecords > 0) {
 				$this->outputLine(LocalizationUtility::translate('migrationSuccessful', 'dam_falmigration'));
 				$this->outputLine(LocalizationUtility::translate('migratedFiles', 'dam_falmigration', array(0 => $amountOfMigratedRecords)));
@@ -506,6 +512,47 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 		} else {
 			$this->outputLine('Table tx_dam_cat is not available. So there is nothing to migrate.');
 		}
+	}
+
+	/**
+	 * Migrate tt_news_categorymounts to category_pems in either be_groups or be_users
+	 *
+	 * @param string $table either be_groups or be_users
+	 */
+	public function migrateDamCategoryMountsToSysCategoryPerms($table) {
+		/** @var \TYPO3\CMS\Core\DataHandling\DataHandler $dataHandler */
+		$dataHandler = GeneralUtility::makeInstance('TYPO3\CMS\Core\DataHandling\DataHandler');
+
+		/* assign imported categories to be_groups or be_users */
+		$whereClause = 'tx_dam_mountpoints != \'\'' . BackendUtility::deleteClause($table);
+		$beGroupsOrUsersWithTxDamMountpoints = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows('*', $table, $whereClause);
+		$data = array();
+
+		foreach ($beGroupsOrUsersWithTxDamMountpoints as $beGroupOrUser) {
+			$txDamMountpoints = GeneralUtility::trimExplode(',', $beGroupOrUser['tx_dam_mountpoints']);
+			$sysCategoryPermissions = array();
+			foreach ($txDamMountpoints as $txDamMountpoint) {
+				if (GeneralUtility::isFirstPartOfStr($txDamMountpoint, 'txdamCat:')) {
+					// we only migrate DAM category mounts
+					$damCategoryMountpoint = GeneralUtility::trimExplode(':', $txDamMountpoint);
+					$whereClause = '_migrateddamcatuid = ' . $damCategoryMountpoint[1];
+					$sysCategory = $GLOBALS['TYPO3_DB']->exec_SELECTgetSingleRow('uid', 'sys_category', $whereClause);
+					if (!empty($sysCategory)) {
+						$sysCategoryPermissions[] = $sysCategory['uid'];
+					}
+				}
+
+
+			}
+			if (count($sysCategoryPermissions)) {
+				$data[$table][$beGroupOrUser['uid']] = array(
+					'category_perms' => implode(',', $sysCategoryPermissions) . ',' . $beGroupOrUser['category_perms']
+				);
+			}
+		}
+		$dataHandler->start($data, array());
+		$dataHandler->admin = TRUE;
+		$dataHandler->process_datamap();
 	}
 
 }
