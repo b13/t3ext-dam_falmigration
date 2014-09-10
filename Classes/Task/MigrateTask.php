@@ -315,5 +315,4 @@ class MigrateTask extends AbstractTask {
 		return $message;
 	}
 
-//	SELECT COUNT(*) FROM tx_dam LEFT JOIN sys_file ON (tx_dam.uid = sys_file._migrateddamuid) WHERE sys_file.uid IS NULL AND tx_dam.deleted = 0;
 }
