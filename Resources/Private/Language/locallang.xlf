@@ -16,7 +16,9 @@
 			<trans-unit id="allFilesMigrated" xml:space="preserve">
 				<source>All files have been migrated already.</source>
 			</trans-unit>
-
+			<trans-unit id="tasks.migrate.additionalInformation" xml:space="preserve">
+				<source>%s done - %s of %s records migrated - %s to go</source>
+			</trans-unit>
 		</body>
 	</file>
 </xliff>

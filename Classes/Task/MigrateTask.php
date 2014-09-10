@@ -102,7 +102,7 @@ class MigrateTask extends AbstractTask {
 							$this->migrateFileFromDamToFal($damRecord, $fileObject);
 							$this->amountOfMigratedRecords++;
 						}
-					} catch(\Exception $e) {
+					} catch (\Exception $e) {
 						// If file is not found
 						$this->amountOfFilesNotFound++;
 						continue;
@@ -135,6 +135,72 @@ class MigrateTask extends AbstractTask {
 	 */
 	protected function isValidDirectory(array $damRecord) {
 		return GeneralUtility::isFirstPartOfStr($this->getFileIdentifier($damRecord), 'fileadmin/');
+	}
+
+	/**
+	 * get a count of all dam records
+	 *
+	 * @return array
+	 */
+	protected function countAllDamRecords() {
+		if ($this->database === NULL) {
+			$this->init();
+		}
+		$row = $this->database->exec_SELECTgetSingleRow(
+			'COUNT(*) as recordCount',
+			'tx_dam',
+			'tx_dam.deleted = 0'
+		);
+		if ($row === NULL) {
+			// SQL error appears
+			return 0;
+		} else {
+			return $row['recordCount'];
+		}
+	}
+
+	/**
+	 * get a count of all dam records which have not been migrated yet
+	 *
+	 * @return array
+	 */
+	protected function countNotMigratedDamRecords() {
+		if ($this->database === NULL) {
+			$this->init();
+		}
+		$row = $this->database->exec_SELECTgetSingleRow(
+			'COUNT(*) as recordCount',
+			'tx_dam LEFT JOIN sys_file ON (tx_dam.uid = sys_file._migrateddamuid)',
+			'sys_file.uid IS NULL AND tx_dam.deleted = 0'
+		);
+		if ($row === NULL) {
+			// SQL error appears
+			return 0;
+		} else {
+			return $row['recordCount'];
+		}
+	}
+
+	/**
+	 * get a count of all dam records which have been migrated
+	 *
+	 * @return array
+	 */
+	protected function countMigratedDamRecords() {
+		if ($this->database === NULL) {
+			$this->init();
+		}
+		$row = $this->database->exec_SELECTgetSingleRow(
+			'COUNT(*) as recordCount',
+			'tx_dam LEFT JOIN sys_file ON (tx_dam.uid = sys_file._migrateddamuid)',
+			'NOT sys_file.uid IS NULL AND tx_dam.deleted = 0'
+		);
+		if ($row === NULL) {
+			// SQL error appears
+			return 0;
+		} else {
+			return $row['recordCount'];
+		}
 	}
 
 	/**
@@ -232,4 +298,22 @@ class MigrateTask extends AbstractTask {
 		return $updateData;
 	}
 
+	/**
+	 * Returns some additional information about migration progress, shown in
+	 * the scheduler's task overview list.
+	 *
+	 * @return string Information to display
+	 */
+	public function getAdditionalInformation() {
+		$string = $GLOBALS['LANG']->sL(
+			'LLL:EXT:dam_falmigration/Resources/Private/Language/locallang.xlf:tasks.migrate.additionalInformation'
+		);
+		$migratedCount = $this->countMigratedDamRecords();
+		$totalCount = $this->countAllDamRecords();
+		$percentage = sprintf('%.1f%%', 100 * $migratedCount / $totalCount);
+		$message = sprintf($string, $percentage, number_format($migratedCount), number_format($totalCount), number_format($this->countNotMigratedDamRecords()));
+		return $message;
+	}
+
+//	SELECT COUNT(*) FROM tx_dam LEFT JOIN sys_file ON (tx_dam.uid = sys_file._migrateddamuid) WHERE sys_file.uid IS NULL AND tx_dam.deleted = 0;
 }
