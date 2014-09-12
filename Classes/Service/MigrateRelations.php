@@ -52,8 +52,9 @@ class MigrateRelations extends AbstractService {
 		if ($this->isTableAvailable('tx_dam_mm_ref')) {
 			$damRelations = $this->getDamReferencesWhereSysFileExists();
 			foreach ($damRelations as $damRelation) {
+				$pid = $this->getPidOfForeignRecord($damRelation);
 				$insertData = array(
-					'pid' => $this->getPidOfForeignRecord($damRelation),
+					'pid' => ($pid === NULL) ? 0 : $pid,
 					'tstamp' => time(),
 					'crdate' => time(),
 					'cruser_id' => $GLOBALS['BE_USER']->user['uid'],
