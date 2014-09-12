@@ -7,70 +7,65 @@
 
 .. _start:
 
-========================================================================================================
-EXT: dam_falmigration - Migrate your Digital Asset Management (dam) data to File Abstraction Layer (fal)
-========================================================================================================
+=============================================================
+DAM to FAL migration
+=============================================================
 
-:Author:          Benni Mack <benni.mack@typo3.org>
-:Buildinfo:       `Make folder <_make>`_ (if on docs.typo3.org)
-:Copyright:       2014 ...
-:Description:     Manual for EXT: dam_falmigration
-:License:         `CC BY-SA 3.0 <http://creativecommons.org/licenses/by-sa/3.0/>`_
-:Rendered:        |today|
+.. only:: html
 
+	:Classification:
+		dam_falmigration
 
+	:Version:
+		|release|
 
+	:Language:
+		en
 
-.. this link to a sitemap is very convenient as long as there isn't an
-automatic sitemap in the documentation layout
+	:Description:
+		This manual will guide you through the steps necessary to migrate your DAM records, references and metadata to TYPO3's new file abstraction layer (FAL).
 
+	:Keywords:
+		dam, fal, migration
 
+	:Copyright:
+		2014
 
-Info
-====
+	:Author:
+		Benni Mack
 
-The content of this document is related to TYPO3, a GNU/GPL
-CMS/Framework available from `typo3.org`__.
+	:Email:
+		benni.mack@typo3.org
 
-__ http://typo3.org/
+	:License:
+		This document is published under the Open Content License
+		available from http://www.opencontent.org/opl.shtml
 
-((This "Info" chapter is just a model. Keep it, change it,
-or remove it - as you like.))
+	:Rendered:
+		|today|
 
-
-
-
-License
-=======
-
-`CC BY-SA 3.0 <http://creativecommons.org/licenses/by-sa/3.0/>`_
-Creative Commons Attribution-ShareAlike 3.0 Unported.
-You are free
-
-- to share: to copy, distribute and transmit the work
-- to remix: to adapt the work
-- to make commercial use of the work
-
-((This "License" chapter is just a model. Keep it, change it,
-or remove it - as you like.))
+	The content of this document is related to TYPO3,
+	a GNU/GPL CMS/Framework available from `www.typo3.org <http://www.typo3.org/>`_.
 
 
+	**Table of Contents**
 
+	.. toctree::
+		:maxdepth: 5
+		:titlesonly:
+		:glob:
 
-Description
-===========
+		Installation/Index
+		UserManual/Index
+		Changelog/Index
 
-This manual will guide you through the steps necessary to migrate your DAM metadata
-to TYPO3s new file abstraction layer (FAL)
+.. only:: latex
 
+	.. toctree::
+		:maxdepth: 5
+		:titlesonly:
+		:glob:
 
-
-Next pages:
-
-.. toctree::
-   :maxdepth: 5
-   :glob:
-   :titlesonly:
-
-   Installation/Index
-   Execution/Index
+		Installation/Index
+		UserManual/Index
+		Changelog/Index

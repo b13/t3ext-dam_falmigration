@@ -3,13 +3,12 @@
 .. --------------------------------------------------
 .. -*- coding: utf-8 -*- with BOM. ÄÖÜäöüß
 
-
 .. This is 'Includes.txt'. It is included at the very top of each and
    every ReST source file in this documentation project (= manual).
 
 
 .. ==================================================
-.. DEFINE SOME TEXTROLES
+.. DEFINE SOME TEXT ROLES
 .. --------------------------------------------------
 
 .. role::   typoscript(code)
