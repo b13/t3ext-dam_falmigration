@@ -85,8 +85,8 @@ abstract class AbstractTask extends \TYPO3\CMS\Scheduler\Task\AbstractTask {
 	 * @return bool
 	 */
 	protected function isTableAvailable($table) {
-		$tables = $this->database->admin_get_tables();
-		return array_key_exists($table, $tables);
+			$tables = $this->database->admin_get_tables();
+			return array_key_exists($table, $tables);
 	}
 
 	/**
