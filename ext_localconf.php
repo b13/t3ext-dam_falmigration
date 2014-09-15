@@ -35,6 +35,18 @@ if (TYPO3_MODE == 'BE') {
 		'description'      => 'Migrates all tt_content records which contains a media-tag and converts them to a FAL-Link-Tag.',
 	);
 
+	$TYPO3_CONF_VARS['SC_OPTIONS']['scheduler']['tasks']['TYPO3\\CMS\\DamFalmigration\\Task\\MigrateTtContentImagecaptionTask'] = array(
+		'extension'        => $_EXTKEY,
+		'title'            => 'DAM-FAL Migration: Migrate imagecaption in tt_content',
+		'description'      => 'Migrates "imagecaption" in tt_content records to "description" in corresponding sys_file_reference records. If the number of lines in a tt_content record\'s imagecaption is greater than the number of associated FAL records it is very likely that tt_content.imagecaption is not used as it is generally supposed to be. These tt_content\'s imagecaption will neither be migrated nor will they be deleted but must be migrated manually! Have a look at the database or (if used) the devlog.',
+	);
+
+	$TYPO3_CONF_VARS['SC_OPTIONS']['scheduler']['tasks']['TYPO3\\CMS\\DamFalmigration\\Task\\MigrateTtContentImageLinkTask'] = array(
+		'extension'        => $_EXTKEY,
+		'title'            => 'DAM-FAL Migration: Migrate image_link in tt_content',
+		'description'      => 'Migrates "image_link" in tt_content records to "link" in corresponding sys_file_reference records. If the number of lines in a tt_content record\'s image_link is greater than the number of associated FAL records it is very likely that tt_content.image_link is not used as it is generally supposed to be. These tt_content\'s image_link will neither be migrated nor will they be deleted but must be migrated manually! Have a look at the database or (if used) the devlog.',
+	);
+
 	$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['extbase']['commandControllers'][] = 'B13\\DamFalmigration\\Controller\\DamMigrationCommandController';
 }
 
