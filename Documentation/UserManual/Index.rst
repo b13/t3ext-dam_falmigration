@@ -46,6 +46,8 @@ The available migration tasks can be found under the *extbase* cliKey:
 	  dammigration:updatereferenceindex        updates the reference index
 	  dammigration:migraterelations            migrate relations to dam records
 	                                           that dam_ttcontent
+	  dammigration:migratedamcategories        Migrate DAM categories to FAL
+	                                           categories
 
 	See '/usr/bin/php typo3/cli_dispatch.phpsh extbase help <command identifier>' for more information about a specific command.
 
@@ -89,7 +91,16 @@ This task migrates the <media DAM_UID target title>Linktext</media> to
 
 	php typo3/cli_dispatch.phpsh extbase dammigration:migratemediatagsinrte
 
-Step 4: Migrate categories to collections
+Step 4: Migrate DAM categories to FAL categories
+================================================
+
+This task migrates the tx_dam_cat records to sys_category records.
+
+.. code-block:: bash
+
+	php typo3/cli_dispatch.phpsh extbase dammigration:migratedamcategories
+
+Step 5: Migrate categories to collections
 =========================================
 
 This task migrates all DAM categories to sys_file_collection records,
@@ -100,7 +111,7 @@ there needs to be sys_file records that have been migrated from DAM.
 
 	php typo3/cli_dispatch.phpsh extbase dammigration:migratedamcategoriestofalcollections
 
-Step 5: Migrate EXT: dam_frontend
+Step 6: Migrate EXT: dam_frontend
 =================================
 
 This task migrates all damfrontend_pi1 plugins to tt_content.uploads with file_collection.
@@ -110,7 +121,7 @@ Usually used in conjunction with / after migrateDamCategoriesToFalCollectionsCom
 
 	php typo3/cli_dispatch.phpsh extbase dammigration:migratedamfrontendplugins
 
-Step 6: Remove duplicate collection references
+Step 7: Remove duplicate collection references
 ==============================================
 
 .. note::
@@ -124,7 +135,7 @@ and removes the duplicates.
 
 	php typo3/cli_dispatch.phpsh extbase dammigration:cleanupduplicatefalcollectionreferences
 
-Step 7: Migrate content relations
+Step 8: Migrate content relations
 =================================
 
 This task migrates relations to dam records that dam_ttcontent and dam_uploads introduced.
@@ -133,7 +144,7 @@ This task migrates relations to dam records that dam_ttcontent and dam_uploads i
 
 	php typo3/cli_dispatch.phpsh extbase dammigration:migraterelations
 
-Step 8: Update the reference index
+Step 9: Update the reference index
 ==================================
 
 This task updates the reference index.
