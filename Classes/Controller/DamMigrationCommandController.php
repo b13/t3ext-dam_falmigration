@@ -1,5 +1,4 @@
 <?php
-
 namespace B13\DamFalmigration\Controller;
 
 /***************************************************************
@@ -137,7 +136,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 		foreach ($recordsToMigrate as $rec) {
 			$metaData = array(
 				'title' => $rec['title'],
-				'description' => $rec['description'],
+				'description' => (string)$rec['description'],
 				'alternative' => $rec['alt_text']
 			);
 			if ($hasAdvancedMetadata) {

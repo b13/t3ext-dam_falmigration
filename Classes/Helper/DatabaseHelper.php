@@ -224,7 +224,7 @@ class DatabaseHelper {
 			'cruser_id' => $record['cruser_id'],
 			'hidden' => $record['hidden'],
 			'title' => $record['title'],
-			'description' => $record['description'],
+			'description' => (string)$record['description'],
 			'items' => $record['items'],
 			'_migrateddamcatuid' => $record['uid']
 		);
