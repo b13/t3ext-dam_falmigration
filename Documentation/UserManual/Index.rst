@@ -36,6 +36,8 @@ The available migration tasks can be found under the *extbase* cliKey:
 	                                           metadata
 	  dammigration:migratemediatagsinrte       migrates the <media DAM_UID target
 	                                           title>Linktext</media>
+	  dammigration:migratedamcategories        Migrate DAM categories to FAL
+	                                           categories
 	  dammigration:migratedamcategoriestofalcollections migrate all DAM categories to
 	                                           sys_file_collection records,
 	  dammigration:migratedamfrontendplugins   migrate all damfrontend_pi1 plugins
@@ -46,8 +48,6 @@ The available migration tasks can be found under the *extbase* cliKey:
 	  dammigration:updatereferenceindex        updates the reference index
 	  dammigration:migraterelations            migrate relations to dam records
 	                                           that dam_ttcontent
-	  dammigration:migratedamcategories        Migrate DAM categories to FAL
-	                                           categories
 
 	See '/usr/bin/php typo3/cli_dispatch.phpsh extbase help <command identifier>' for more information about a specific command.
 
