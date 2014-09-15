@@ -3,7 +3,9 @@
 	<file source-language="en" datatype="plaintext" original="messages" date="2013-10-18T13:28:32Z" product-name="dam_falmigration">
 		<header/>
 		<body>
-
+			<trans-unit id="creatingCategory" xml:space="preserve">
+				<source>Creating category: %s</source>
+			</trans-unit>
 			<trans-unit id="migrationSuccessful" xml:space="preserve">
 				<source>Migration successful</source>
 			</trans-unit>

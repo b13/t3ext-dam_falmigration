@@ -64,6 +64,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 		);
 
 		$this->outputLine('Found ' . count($damRecords) . ' DAM records with no connected sys_file entry');
+		$this->response->send();
 
 		foreach ($damRecords as $damRecord) {
 
@@ -87,6 +88,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 				continue;
 			} catch(\Exception $e) {
 				$this->outputLine('File not found: "' . $fullFileName . '"');
+				$this->response->send();
 				continue;
 			}
 
@@ -270,6 +272,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 				// don't migrate categories with no files
 				if (count($categoryInfo['files']) == 0) {
 					$this->outputLine('Category ' . $categoryInfo['title'] . ' was not added since it has no valid FAL record attached to it');
+					$this->response->send();
 					continue;
 				}
 
@@ -283,7 +286,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 				if (is_array($existingFileCollection)) {
 					$damCategories[$damCategoryUid]['falcollectionuid'] = $existingFileCollection['uid'];
 					$this->outputLine('DAM category ' . $damCategoryUid . ' has the existing FAL collection ' . $existingFileCollection['uid']);
-
+					$this->response->send();
 				} else {
 
 					$GLOBALS['TYPO3_DB']->exec_INSERTquery(
@@ -296,6 +299,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 					);
 					$damCategories[$damCategoryUid]['falcollectionuid'] = $GLOBALS['TYPO3_DB']->sql_insert_id();
 					$this->outputLine('New FAL collection added (uid ' . $damCategories[$damCategoryUid]['falcollectionuid'] . ') from DAM category ' . $damCategoryUid);
+					$this->response->send();
 				}
 			}
 
@@ -320,10 +324,12 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 								} else {
 									$this->outputLine('FAL file relation of file ' . $falUid . ' to FAL collection ' . $falCollectionUid . ' already exists. Nothing modified.');
 								}
+								$this->response->send();
 							}
 						}
 					} else {
 						$this->outputLine('Notice: Collection / DAM Category "' . $categoryInfo['title'] . '" (DAM Category ID ' . $damCategoryUid . '/FAL Collection ID ' . $falCollectionUid . ') has no files attached to it');
+						$this->response->send();
 					}
 				}
 			}
@@ -368,6 +374,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 		}
 
 		$this->outputLine('Found ' . count($damFrontendPlugins) . ' plugins of dam_frontend_pi1');
+		$this->response->send();
 
 
 		// replace the plugins with the new ones
@@ -383,6 +390,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 			}
 
 			$this->outputLine('Categories for plugin ' . $plugin['uid'] . ': ' . implode(',', $fileCollections) . ' (originally: ' . $plugin['damfrontend_usedCategories'] . ')');
+			$this->response->send();
 
 			if (count($fileCollections) > 0) {
 				$GLOBALS['TYPO3_DB']->exec_UPDATEquery(
@@ -415,6 +423,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 			'uid_foreign, uid_local'
 		);
 		$this->outputLine('Found ' . count($references) . ' references to sys_file_collection');
+		$this->response->send();
 		$affectedRecords=0;
 		foreach ($references as $ref) {
 			// this reference has duplicates
@@ -494,6 +503,9 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 
 				// create the new category in table sys_category
 				$newUid = $databaseHelper->createNewCategory($category, $newParentUid, $storagePid);
+
+				$this->outputLine(LocalizationUtility::translate('creatingCategory', 'dam_falmigration'), array($category['title']));
+				$this->response->send();
 
 				$parentUidMap[$category['uid']] = $newUid;
 				$amountOfMigratedRecords++;
