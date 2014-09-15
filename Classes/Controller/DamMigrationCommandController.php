@@ -110,9 +110,11 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 
 		// print a message
 		if ($migratedFiles > 0) {
-			$this->outputLine('Migration successful: Migrated ' . $migratedFiles . ' files.');
+			$this->outputLine(LocalizationUtility::translate('migrationSuccessful', 'dam_falmigration'));
+			$this->outputLine(LocalizationUtility::translate('migratedFiles', 'dam_falmigration', array(0 => $migratedFiles)));
 		} else {
-			$this->outputLine('Migration not needed: All files have been migrated already.');
+			$this->outputLine(LocalizationUtility::translate('migrationNotNecessary', 'dam_falmigration'));
+			$this->outputLine(LocalizationUtility::translate('allFilesMigrated', 'dam_falmigration'));
 		}
 	}
 
@@ -503,10 +505,10 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 
 			if ($amountOfMigratedRecords > 0) {
 				$this->outputLine(LocalizationUtility::translate('migrationSuccessful', 'dam_falmigration'));
-				$this->outputLine(LocalizationUtility::translate('migratedFiles', 'dam_falmigration', array(0 => $amountOfMigratedRecords)));
+				$this->outputLine(LocalizationUtility::translate('migratedCategories', 'dam_falmigration', array(0 => $amountOfMigratedRecords)));
 			} else {
 				$this->outputLine(LocalizationUtility::translate('migrationNotNecessary', 'dam_falmigration'));
-				$this->outputLine(LocalizationUtility::translate('allFilesMigrated', 'dam_falmigration', array(0 => $amountOfMigratedRecords)));
+				$this->outputLine(LocalizationUtility::translate('allCategoriesMigrated', 'dam_falmigration'));
 			}
 		} else {
 			$this->outputLine('Table tx_dam_cat is not available. So there is nothing to migrate.');

@@ -10,8 +10,14 @@
 			<trans-unit id="migrationNotNecessary" xml:space="preserve">
 				<source>Migration not necessary</source>
 			</trans-unit>
+			<trans-unit id="migratedCategories" xml:space="preserve">
+				<source>Migrated %s categories.</source>
+			</trans-unit>
 			<trans-unit id="migratedFiles" xml:space="preserve">
 				<source>Migrated %s files.</source>
+			</trans-unit>
+			<trans-unit id="allCategoriesMigrated" xml:space="preserve">
+				<source>All categories have been migrated already.</source>
 			</trans-unit>
 			<trans-unit id="allFilesMigrated" xml:space="preserve">
 				<source>All files have been migrated already.</source>
