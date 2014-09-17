@@ -278,7 +278,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 				// create the new category in table sys_category
 				$newUid = $databaseHelper->createNewCategory($category, $newParentUid, $storagePid);
 
-				$this->message(LocalizationUtility::translate('creatingCategory', 'dam_falmigration'), array($category['title']));
+				$this->message(LocalizationUtility::translate('creatingCategory', 'dam_falmigration', array($category['title'])));
 
 				$parentUidMap[$category['uid']] = $newUid;
 				$amountOfMigratedRecords++;
@@ -306,12 +306,11 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	 * as a pre-requisite, there needs to be sys_file records that
 	 * have been migrated from DAM
 	 *
+	 * @param integer $fileCollectionStoragePid The page id on which to store the collections
 	 * @param bool|string $migrateReferences whether just the categories should be migrated or the references as well
 	 */
-	public function migrateDamCategoriesToFalCollectionsCommand($migrateReferences = TRUE) {
+	public function migrateDamCategoriesToFalCollectionsCommand($fileCollectionStoragePid = 0, $migrateReferences = TRUE) {
 		$this->headerMessage(LocalizationUtility::translate('migrateDamCategoriesToFalCollectionsCommand', 'dam_falmigration'));
-
-		$fileCollectionStoragePid = 44;
 
 		$databaseHelper = \B13\DamFalmigration\Helper\DatabaseHelper::getInstance();
 
@@ -365,7 +364,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 					$GLOBALS['TYPO3_DB']->exec_INSERTquery(
 						'sys_file_collection',
 						array(
-							'pid' => $fileCollectionStoragePid,
+							'pid' => (int)$fileCollectionStoragePid ,
 							'title' => $categoryInfo['title'],
 							'_migrateddamcatuid' => $damCategoryUid
 						)
@@ -547,7 +546,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	 * @param string $table either be_groups or be_users
 	 */
 	public function migrateDamCategoryMountsToSysCategoryPerms($table) {
-		$this->headerMessage(LocalizationUtility::translate('migrateDamCategoryMountsToSysCategoryPerms', 'dam_falmigration'));
+		$this->headerMessage(LocalizationUtility::translate('migrateDamCategoryMountsToSysCategoryPerms', 'dam_falmigration', array($table)));
 		/** @var \TYPO3\CMS\Core\DataHandling\DataHandler $dataHandler */
 		$dataHandler = GeneralUtility::makeInstance('TYPO3\CMS\Core\DataHandling\DataHandler');
 
