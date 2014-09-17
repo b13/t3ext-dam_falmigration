@@ -54,7 +54,7 @@ class MigrateDamCategoryRelationsTask extends AbstractTask {
 			foreach ($categoryRelations as $categoryRelation) {
 				$insertData = array(
 					'uid_local' => $categoryRelation['sys_category_uid'],
-					'uid_foreign' => $categoryRelation['sys_file_uid'],
+					'uid_foreign' => $categoryRelation['sys_metadata_uid'],
 					'sorting' => $categoryRelation['sorting'],
 					'sorting_foreign' => $categoryRelation['sorting_foreign'],
 					'tablenames' => 'sys_file_metadata',
@@ -85,9 +85,9 @@ class MigrateDamCategoryRelationsTask extends AbstractTask {
 	 */
 	protected function getCategoryRelationsWhereSysCategoryExists() {
 		$rows = $this->database->exec_SELECTgetRows(
-			'MM.*, SF.uid as sys_file_uid, SC.uid as sys_category_uid',
-			'tx_dam_mm_cat MM, sys_file SF, sys_category SC',
-			'SC._migrateddamcatuid = MM.uid_foreign AND SF._migrateddamuid = MM.uid_local'
+			'MM.*, SM.uid as sys_metadata_uid, SC.uid as sys_category_uid',
+			'tx_dam_mm_cat MM, sys_file SF, sys_category SC, sys_file_metadata SM',
+			'SC._migrateddamcatuid = MM.uid_foreign AND SF._migrateddamuid = MM.uid_local AND SM.file = SF.uid'
 		);
 		if ($rows === NULL) {
 			throw new \Exception('SQL-Error in getCategoryRelationsWhereSysCategoryExists()', 1382968725);
@@ -106,9 +106,9 @@ class MigrateDamCategoryRelationsTask extends AbstractTask {
 		$amountOfExistingRecords = $this->database->exec_SELECTcountRows(
 			'*',
 			'sys_category_record_mm',
-			'uid_local = ' . $categoryRelation['sys_file_uid'] .
-			' AND uid_foreign = ' . $categoryRelation['sys_category_uid'] .
-			' AND tablenames = "sys_file"'
+			'uid_local = ' . $categoryRelation['sys_category_uid'] .
+			' AND uid_foreign = ' . $categoryRelation['sys_metadata_uid'] .
+			' AND tablenames = "sys_file_metadata"'
 		);
 		if ($amountOfExistingRecords) {
 			return TRUE;

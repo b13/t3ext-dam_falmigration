@@ -1,22 +1,60 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xliff version="1.0">
-	<file source-language="en" datatype="plaintext" original="messages" date="2013-10-18T13:28:32Z" product-name="dam_falmigration">
+	<file source-language="en" datatype="plaintext" original="messages"
+	      date="2013-10-18T13:28:32Z" product-name="dam_falmigration">
 		<header/>
 		<body>
-
+			<trans-unit id="connectDamRecordsWithSysFileCommand" xml:space="preserve">
+				<source>Migrating DAM records to sys_file records</source>
+			</trans-unit>
+			<trans-unit id="migrateDamMetadataCommand" xml:space="preserve">
+				<source>Migrating DAM metadata</source>
+			</trans-unit>
+			<trans-unit id="migrateMediaTagsInRteCommand" xml:space="preserve">
+				<source>Migrating RTE media tags</source>
+			</trans-unit>
+			<trans-unit id="migrateDamCategoriesCommand" xml:space="preserve">
+				<source>Migrating DAM categories to FAL categories</source>
+			</trans-unit><trans-unit id="migrateDamFrontendPluginsCommand" xml:space="preserve">
+				<source>Migrating dam_frontend plugins</source>
+			</trans-unit>
+			<trans-unit id="migrateDamCategoriesToFalCollectionsCommand" xml:space="preserve">
+				<source>Migrating DAM categories to FAL collections</source>
+			</trans-unit>
+			<trans-unit id="cleanupDuplicateFalCollectionReferencesCommand" xml:space="preserve">
+				<source>Cleaning up duplicate FAL collection references</source>
+			</trans-unit><trans-unit id="updateReferenceIndexCommand" xml:space="preserve">
+				<source>Updating reference index</source>
+			</trans-unit><trans-unit id="migrateRelationsCommand" xml:space="preserve">
+				<source>Migrating relations to dam records</source>
+			</trans-unit>
+			<trans-unit id="migrateDamCategoryMountsToSysCategoryPerms" xml:space="preserve">
+				<source>Migrating DAM category mounts to FAL category permissions</source>
+			</trans-unit>
+			<trans-unit id="creatingCategory" xml:space="preserve">
+				<source>Creating category: %s</source>
+			</trans-unit>
 			<trans-unit id="migrationSuccessful" xml:space="preserve">
 				<source>Migration successful</source>
 			</trans-unit>
 			<trans-unit id="migrationNotNecessary" xml:space="preserve">
 				<source>Migration not necessary</source>
 			</trans-unit>
+			<trans-unit id="migratedCategories" xml:space="preserve">
+				<source>Migrated %s categories.</source>
+			</trans-unit>
 			<trans-unit id="migratedFiles" xml:space="preserve">
 				<source>Migrated %s files.</source>
+			</trans-unit>
+			<trans-unit id="allCategoriesMigrated" xml:space="preserve">
+				<source>All categories have been migrated already.</source>
 			</trans-unit>
 			<trans-unit id="allFilesMigrated" xml:space="preserve">
 				<source>All files have been migrated already.</source>
 			</trans-unit>
-
+			<trans-unit id="tasks.migrate.additionalInformation" xml:space="preserve">
+				<source>%s done - %s of %s records migrated - %s to go</source>
+			</trans-unit>
 		</body>
 	</file>
 </xliff>

@@ -37,6 +37,8 @@ class DatabaseHelper {
 
 	/**
 	 * simple wrapper
+	 *
+	 * @return \B13\DamFalmigration\Helper\DatabaseHelper
 	 */
 	public static function getInstance() {
 		return \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('B13\\DamFalmigration\\Helper\\DatabaseHelper');
@@ -98,7 +100,42 @@ class DatabaseHelper {
 
 	}
 
+	/**
+	 * Gets all available (not deleted) DAM categories.
+	 * Returns array with all categories.
+	 *
+	 * @return array
+	 */
+	public function getAllNotYetMigratedDamCategoriesWithItemCount() {
+		// this query can also count all related categories (sys_category.items)
+		$damCategories = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+			'uid, parent_id, tstamp, sorting, crdate, cruser_id, hidden, title, description, (SELECT COUNT(*) FROM tx_dam_mm_cat WHERE tx_dam_mm_cat.uid_foreign = tx_dam_cat.uid) as items',
+			'tx_dam_cat',
+			'deleted = 0',
+			'', 'parent_id', ''
+		);
 
+		// fetch all already imported sys_categories
+		$importedSysCategories = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+			'_migrateddamcatuid',
+			'sys_category',
+			'deleted = 0 AND _migrateddamcatuid > 0',
+			'',
+			'',
+			'',
+			'_migrateddamcatuid'
+		);
+
+		// remove already imported categories from DAM categories to be imported
+		foreach ($damCategories as $key => $damCategory) {
+			//\TYPO3\CMS\Core\Utility\DebugUtility::debug($damCategory);
+			if (array_key_exists($damCategory['uid'], $importedSysCategories)) {
+				unset($damCategories[$key]);
+			}
+		}
+
+		return $damCategories;
+	}
 
 	/**
 	 * adds a relation to sys_file_reference if it does not exist yet
@@ -137,6 +174,66 @@ class DatabaseHelper {
 		}
 	}
 
+	/**
+	 * check if given table exists in current database
+	 * we can't check TCA or for installed extensions because dam and dam_ttcontent are not available for TYPO3 6.2
+	 *
+	 * @param $table
+	 * @return bool
+	 */
+	public function isTableAvailable($table) {
+		$tables = $GLOBALS['TYPO3_DB']->admin_get_tables();
+		return array_key_exists($table, $tables);
+	}
 
+	/**
+	 * Check if the wanted parent uid is available.
+	 *
+	 * @return boolean
+	 */
+	public function checkInitialParentAvailable() {
+		$amountOfResults = $GLOBALS['TYPO3_DB']->exec_SELECTcountRows(
+			'*',
+			'sys_category',
+			'deleted = 0'
+		);
+
+		if ($amountOfResults) {
+			return TRUE;
+		} else {
+			return FALSE;
+		}
+	}
+
+	/**
+	 * Adds new categorie in table sys_category. Requires the record array and the
+	 * new parent_id for it has changed from DAM to FAL migration.
+	 *
+	 * @param $record
+	 * @param $newParentUid
+	 * @param $storagePid
+	 * @return integer
+	 */
+	public function createNewCategory($record, $newParentUid, $storagePid) {
+		$sysCategory = array(
+			'pid' => $storagePid,
+			'parent' => $newParentUid,
+			'tstamp' => $record['tstamp'],
+			'sorting' => $record['sorting'],
+			'crdate' => $record['crdate'],
+			'cruser_id' => $record['cruser_id'],
+			'hidden' => $record['hidden'],
+			'title' => $record['title'],
+			'description' => (string)$record['description'],
+			'items' => $record['items'],
+			'_migrateddamcatuid' => $record['uid']
+		);
+
+		$GLOBALS['TYPO3_DB']->exec_INSERTquery('sys_category', $sysCategory);
+
+		$newUid = $GLOBALS['TYPO3_DB']->sql_insert_id();
+
+		return $newUid;
+	}
 
 }
