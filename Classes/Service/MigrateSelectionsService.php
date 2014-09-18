@@ -1,44 +1,49 @@
 <?php
-namespace TYPO3\CMS\DamFalmigration\Task;
+namespace TYPO3\CMS\DamFalmigration\Service;
 
-/***************************************************************
+/**
  *  Copyright notice
  *
  *  (c) 2013 Frans Saris <franssaris@gmail.com>
  *  All rights reserved
  *
- *  This script is part of the TYPO3 project. The TYPO3 project is
- *  free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  This script is part of the TYPO3 project. The TYPO3 project is free
+ *  software; you can redistribute it and/or modify it under the terms of the
+ *  GNU General Public License as published by the Free Software Foundation;
+ *  either version 2 of the License, or (at your option) any later version.
  *
  *  The GNU General Public License can be found at
  *  http://www.gnu.org/copyleft/gpl.html.
- *  A copy is found in the textfile GPL.txt and important notices to the license
- *  from the author is found in LICENSE.txt distributed with these scripts.
  *
- *  This script is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  This script is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ *  more details.
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
- ***************************************************************/
-use TYPO3\CMS\Core\Utility\GeneralUtility;
+ */
+use TYPO3\CMS\Core\Messaging\FlashMessage;
 
-class MigrateDamSelectionsTask extends AbstractTask {
+/**
+ * Class MigrateSelectionsService
+ *
+ * @package TYPO3\CMS\DamFalmigration\Service
+ */
+class MigrateSelectionsService extends AbstractService {
 
 	/**
-	 * main function, needs to return TRUE or FALSE in order to tell
-	 * the scheduler whether the task went through smoothly
+	 * main function, returns a FlashMessge
 	 *
-	 * @return boolean
+	 * @param \B13\DamFalmigration\Controller\DamMigrationCommandController $parent Used
+	 *    to log output to console
+	 *
+	 * @return FlashMessage
 	 */
-	public function execute() {
-		$this->init();
+	public function execute($parent) {
 
 		$damSelections = $this->getNotMigratedDamSelections();
+
+		$parent->infoMessage('Found ' . count($damSelections) . ' selections');
 
 		// search for txdamFolder and create new folder based sys_file_collection
 		foreach ($damSelections as $damSelection) {
@@ -63,31 +68,37 @@ class MigrateDamSelectionsTask extends AbstractTask {
 				);
 				$this->database->exec_INSERTquery('sys_file_collection', $sysFileCollection);
 
+				$parent->message('Migrating selection ' . $damSelection['uid']);
+
 				$this->amountOfMigratedRecords++;
+			} else {
+				$parent->warningMessage('Empty selection found');
 			}
 		}
-		
-		$this->addResultMessage();
-		
-		return TRUE;
+
+		return $this->getResultMessage();
 	}
 
 	/**
 	 * get dam folder
 	 *
 	 * @param array $damSelection
+	 *
 	 * @return bool|string
 	 */
 	protected function getDamFolder(array $damSelection) {
 		$damFolder = FALSE;
 		$damSelectionDefinition = unserialize($damSelection['definition']);
 
-		foreach ($damSelectionDefinition as $damSelectionElements) {
-			if (array_key_exists('txdamFolder', $damSelectionElements)) {
-				$damFolder = key($damSelectionElements['txdamFolder']);
-				break;
+		if (is_array($damSelectionDefinition)) {
+			foreach ($damSelectionDefinition as $damSelectionElements) {
+				if (array_key_exists('txdamFolder', $damSelectionElements)) {
+					$damFolder = key($damSelectionElements['txdamFolder']);
+					break;
+				}
 			}
 		}
+
 		return $damFolder;
 	}
 
@@ -105,12 +116,14 @@ class MigrateDamSelectionsTask extends AbstractTask {
 		);
 		if (!empty($migratedRecords['uidList'])) {
 			return $migratedRecords['uidList'];
-		} else return '';
+		} else {
+			return '';
+		}
 	}
 
 	/**
-	 * this method generates an additional where clause to find all dam selections
-	 * which were not already migrated
+	 * this method generates an additional where clause to find all dam
+	 * selections which were not already migrated
 	 *
 	 * @return string
 	 */
@@ -118,7 +131,10 @@ class MigrateDamSelectionsTask extends AbstractTask {
 		$uidList = $this->getUidListOfAlreadyMigratedSelections();
 		if ($uidList) {
 			$additionalWhereClause = 'AND uid NOT IN (' . $uidList . ')';
-		} else $additionalWhereClause = '';
+		} else {
+			$additionalWhereClause = '';
+		}
+
 		return $additionalWhereClause;
 	}
 
@@ -133,6 +149,7 @@ class MigrateDamSelectionsTask extends AbstractTask {
 			'tx_dam_selection',
 			'type = 0 AND deleted = 0 ' . $this->getAdditionalWhereClauseForNotMigratedDamSelections()
 		);
+
 		return $rows;
 	}
 

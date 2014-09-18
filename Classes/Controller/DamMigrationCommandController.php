@@ -1,28 +1,32 @@
 <?php
 namespace B13\DamFalmigration\Controller;
 
-/***************************************************************
+/**
  *  Copyright notice
  *
  *  (c) 2013 Benjamin Mack <typo3@b13.de>
  *  All rights reserved
  *
- *  This script is part of the TYPO3 project. The TYPO3 project is
- *  free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  This script is part of the TYPO3 project. The TYPO3 project is free
+ *  software; you can redistribute it and/or modify it under the terms of
+ * the GNU General Public License as published by the Free Software
+ * Foundation; either version 2 of the License, or (at your option) any
+ * later version.
  *
  *  The GNU General Public License can be found at
  *  http://www.gnu.org/copyleft/gpl.html.
  *
- *  This script is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  This script is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
- ***************************************************************/
+ */
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 // I can haz color / use unicode?
 if (DIRECTORY_SEPARATOR !== '\\') {
@@ -40,11 +44,6 @@ if (@exec('tput cols')) {
 	define('TERMINAL_WIDTH', 79);
 }
 
-use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Messaging\FlashMessage;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
-
 /**
  * Command Controller to execute DAM to FAL Migration scripts
  *
@@ -54,13 +53,13 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\CommandController {
 
 	/**
-	 * goes through all DAM files and checks if they have a counterpart in the sys_file
-	 * table. If not, fetch the file (via the storage, which indexes the file directly)
-	 * and update the DAM DB table
-	 * Please note that this does not migrate the metadata
-	 * this command can be run multiple times
+	 * goes through all DAM files and checks if they have a counterpart in the
+	 * sys_file table. If not, fetch the file (via the storage, which indexes
+	 * the file directly) and update the DAM DB table Please note that this
+	 * does not migrate the metadata this command can be run multiple times
 	 *
-	 * @param int|string $storageUid the UID of the storage (usually 1, don't modify if you are unsure)
+	 * @param int|string $storageUid the UID of the storage (usually 1, don't
+	 *    modify if you are unsure)
 	 */
 	public function connectDamRecordsWithSysFileCommand($storageUid = 1) {
 		$this->headerMessage(LocalizationUtility::translate('connectDamRecordsWithSysFileCommand', 'dam_falmigration'));
@@ -205,7 +204,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 
 		$this->infoMessage('Found ' . count($recordsToMigrate) . ' ' . $table . ' records that have a "<media>" tag in the field ' . $field);
 		foreach ($recordsToMigrate as $rec) {
-			$originalContent = $rec[$field];
+			$originalContent = $rec[ $field ];
 			$finalContent = $originalContent;
 			$results = array();
 			preg_match_all('/<media ([0-9]+)([^>]*)>(.*?)<\/media>/', $originalContent, $results, PREG_SET_ORDER);
@@ -247,6 +246,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	 *
 	 * @param integer $initialParentUid Initial parent UID
 	 * @param integer $storagePid Store on PID
+	 *
 	 * @return bool
 	 */
 	public function migrateDamCategoriesCommand($initialParentUid = 0, $storagePid) {
@@ -272,14 +272,14 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 			$amountOfMigratedRecords = 0;
 			foreach ($damCategories as $category) {
 
-				$newParentUid = $parentUidMap[$category['parent_id']];
+				$newParentUid = $parentUidMap[ $category['parent_id'] ];
 
 				// create the new category in table sys_category
 				$newUid = $databaseHelper->createNewCategory($category, $newParentUid, $storagePid);
 
 				$this->message(LocalizationUtility::translate('creatingCategory', 'dam_falmigration', array($category['title'])));
 
-				$parentUidMap[$category['uid']] = $newUid;
+				$parentUidMap[ $category['uid'] ] = $newUid;
 				$amountOfMigratedRecords++;
 			}
 
@@ -305,8 +305,10 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	 * as a pre-requisite, there needs to be sys_file records that
 	 * have been migrated from DAM
 	 *
-	 * @param integer $fileCollectionStoragePid The page id on which to store the collections
-	 * @param bool|string $migrateReferences whether just the categories should be migrated or the references as well
+	 * @param integer $fileCollectionStoragePid The page id on which to store
+	 *    the collections
+	 * @param bool|string $migrateReferences whether just the categories should
+	 *    be migrated or the references as well
 	 */
 	public function migrateDamCategoriesToFalCollectionsCommand($fileCollectionStoragePid = 0, $migrateReferences = TRUE) {
 		$this->headerMessage(LocalizationUtility::translate('migrateDamCategoriesToFalCollectionsCommand', 'dam_falmigration'));
@@ -329,7 +331,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 			);
 
 			foreach ($mmRelations as $relation) {
-				$damCategories[$relation['categoryuid']]['files'][] = $falRecords[$relation['damuid']]['uid'];
+				$damCategories[ $relation['categoryuid'] ]['files'][] = $falRecords[ $relation['damuid'] ]['uid'];
 			}
 
 			// create FAL collections out of the categories
@@ -356,20 +358,20 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 				);
 
 				if (is_array($existingFileCollection)) {
-					$damCategories[$damCategoryUid]['falcollectionuid'] = $existingFileCollection['uid'];
+					$damCategories[ $damCategoryUid ]['falcollectionuid'] = $existingFileCollection['uid'];
 					$this->infoMessage('DAM category ' . $damCategoryUid . ' has the existing FAL collection ' . $existingFileCollection['uid']);
 				} else {
 
 					$GLOBALS['TYPO3_DB']->exec_INSERTquery(
 						'sys_file_collection',
 						array(
-							'pid' => (int)$fileCollectionStoragePid ,
+							'pid' => (int)$fileCollectionStoragePid,
 							'title' => $categoryInfo['title'],
 							'_migrateddamcatuid' => $damCategoryUid
 						)
 					);
-					$damCategories[$damCategoryUid]['falcollectionuid'] = $GLOBALS['TYPO3_DB']->sql_insert_id();
-					$this->infoMessage('New FAL collection added (uid ' . $damCategories[$damCategoryUid]['falcollectionuid'] . ') from DAM category ' . $damCategoryUid);
+					$damCategories[ $damCategoryUid ]['falcollectionuid'] = $GLOBALS['TYPO3_DB']->sql_insert_id();
+					$this->infoMessage('New FAL collection added (uid ' . $damCategories[ $damCategoryUid ]['falcollectionuid'] . ') from DAM category ' . $damCategoryUid);
 				}
 			}
 
@@ -432,8 +434,9 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	}
 
 	/**
-	 * migrate all damfrontend_pi1 plugins to tt_content.uploads with file_collection
-	 * usually used in conjunction with / after migrateDamCategoriesToFalCollectionsCommand()
+	 * migrate all damfrontend_pi1 plugins to tt_content.uploads with
+	 * file_collection usually used in conjunction with / after
+	 * migrateDamCategoriesToFalCollectionsCommand()
 	 */
 	public function migrateDamFrontendPluginsCommand() {
 		$this->headerMessage(LocalizationUtility::translate('migrateDamFrontendPluginsCommand', 'dam_falmigration'));
@@ -474,8 +477,8 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 			$fileCollections = array();
 
 			foreach ($usedDamCategories as $damCategoryUid) {
-				if (isset($migratedFileCollections[$damCategoryUid])) {
-					$fileCollections[] = $migratedFileCollections[$damCategoryUid]['uid'];
+				if (isset($migratedFileCollections[ $damCategoryUid ])) {
+					$fileCollections[] = $migratedFileCollections[ $damCategoryUid ]['uid'];
 				}
 			}
 
@@ -501,7 +504,8 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	 * checks if there are multiple entries in sys_file_reference that contain
 	 * the same uid_local and uid_foreign with sys_file_collection references
 	 * and removes the duplicates
-	 * NOTE: this command is usually *NOT* necessary, but only if something went wrong
+	 * NOTE: this command is usually *NOT* necessary, but only if something
+	 * went wrong
 	 */
 	public function cleanupDuplicateFalCollectionReferencesCommand() {
 		$this->headerMessage(LocalizationUtility::translate('cleanupDuplicateFalCollectionReferencesCommand', 'dam_falmigration'));
@@ -539,8 +543,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	}
 
 	/**
-	 * migrate relations to dam records that dam_ttcontent
-	 * and dam_uploads introduced
+	 * migrate relations to dam records that dam_ttcontent and dam_uploads introduced
 	 *
 	 * it is highly recommended to update the ref index afterwards
 	 */
@@ -563,7 +566,31 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	}
 
 	/**
-	 * Migrate tt_news_categorymounts to category_pems in either be_groups or be_users
+	 * Migrates all available DAM Selections in sys_file_collections (only folder based selections for now).
+	 *
+	 * it is highly recommended to update the ref index afterwards
+	 */
+	public function migrateSelectionsCommand() {
+		$this->headerMessage(LocalizationUtility::translate('migrateSelectionsCommand', 'dam_falmigration'));
+		/** @var \TYPO3\CMS\DamFalmigration\Service\MigrateSelectionsService $migrateSelectionsService */
+		$migrateSelectionsService = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateSelectionsService');
+		/** @var \TYPO3\CMS\Core\Messaging\FlashMessage $message */
+		$message = $migrateSelectionsService->execute($this);
+
+		if ($message->getTitle()) {
+			$this->outputLine($message->getTitle());
+		}
+		if ($message->getMessage()) {
+			$this->outputLine($message->getMessage());
+		}
+		if ($message->getSeverity() !== FlashMessage::OK) {
+			$this->sendAndExit(1);
+		}
+	}
+
+	/**
+	 * Migrate tt_news_categorymounts to category_pems in either be_groups or
+	 * be_users
 	 *
 	 * @param string $table either be_groups or be_users
 	 */
@@ -593,7 +620,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 
 			}
 			if (count($sysCategoryPermissions)) {
-				$data[$table][$beGroupOrUser['uid']] = array(
+				$data[ $table ][ $beGroupOrUser['uid'] ] = array(
 					'category_perms' => implode(',', $sysCategoryPermissions) . ',' . $beGroupOrUser['category_perms']
 				);
 			}

@@ -15,8 +15,9 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *
  *  The GNU General Public License can be found at
  *  http://www.gnu.org/copyleft/gpl.html.
- *  A copy is found in the textfile GPL.txt and important notices to the license
- *  from the author is found in LICENSE.txt distributed with these scripts.
+ *  A copy is found in the textfile GPL.txt and important notices to the
+ * license from the author is found in LICENSE.txt distributed with these
+ * scripts.
  *
  *
  *  This script is distributed in the hope that it will be useful,
@@ -33,7 +34,8 @@ use TYPO3\CMS\Core\Messaging\FlashMessage;
  *
  * DAM-FAL Migration: Migrate DAM Category Relations
  *
- * Migrates all Relations between DAM Categories and DAM files to FAL Files and Category.
+ * Migrates all Relations between DAM Categories and DAM files to FAL Files
+ * and Category.
  *
  * Finds all DAM categories and adds a DB field "_migrateddamcatuid"
  * to each category record
@@ -46,10 +48,10 @@ use TYPO3\CMS\Core\Messaging\FlashMessage;
 class MigrateCategoryRelationsService extends AbstractService {
 
 	/**
-	 * main function, needs to return TRUE or FALSE in order to tell
-	 * the scheduler whether the task went through smoothly
+	 * main function, returns a FlashMessge
 	 *
-	 * @param \B13\DamFalmigration\Controller\DamMigrationCommandController $parent Used to log output to console
+	 * @param \B13\DamFalmigration\Controller\DamMigrationCommandController $parent Used
+	 *    to log output to console
 	 *
 	 * @throws \Exception
 	 *
@@ -80,6 +82,7 @@ class MigrateCategoryRelationsService extends AbstractService {
 					$parent->message('Relation already migrated.');
 				}
 			}
+
 			return $this->getResultMessage();
 		} else {
 			$parent->errorMessage('Table tx_dam_mm_ref not found. So there is nothing to migrate.');
@@ -87,8 +90,10 @@ class MigrateCategoryRelationsService extends AbstractService {
 	}
 
 	/**
-	 * After a migration of tx_dam_cat -> sys_category the col _migrateddamcatuid is filled with dam category uid
-	 * Now we can search in dam category relations for dam categories which have already been migrated to sys_category
+	 * After a migration of tx_dam_cat -> sys_category the col
+	 * _migrateddamcatuid is filled with dam category uid Now we can search in
+	 * dam category relations for dam categories which have already been
+	 * migrated to sys_category
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -103,13 +108,16 @@ class MigrateCategoryRelationsService extends AbstractService {
 			throw new \Exception('SQL-Error in getCategoryRelationsWhereSysCategoryExists()', 1382968725);
 		} elseif (count($rows) === 0) {
 			throw new \Exception('There are no migrated dam categories in sys_category. Please start to migrate DAM Cat -> sys_category first. Or, maybe there are no dam categories to migrate', 1382968775);
-		} else return $rows;
+		} else {
+			return $rows;
+		}
 	}
 
 	/**
 	 * check if a sys_category_record_mm already exists
 	 *
 	 * @param array $categoryRelation
+	 *
 	 * @return boolean
 	 */
 	protected function checkIfSysCategoryRelationExists(array $categoryRelation) {
