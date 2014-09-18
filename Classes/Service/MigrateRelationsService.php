@@ -25,7 +25,6 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
-use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 
 /**
@@ -34,7 +33,7 @@ use TYPO3\CMS\Core\Messaging\FlashMessage;
  *
  * @author      Benjamin Mack <benni@typo3.org>
  */
-class MigrateRelations extends AbstractService {
+class MigrateRelationsService extends AbstractService {
 
 	/**
 	 * @var \TYPO3\CMS\Core\Database\ReferenceIndex

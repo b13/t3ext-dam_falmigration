@@ -4,6 +4,9 @@
 	      date="2013-10-18T13:28:32Z" product-name="dam_falmigration">
 		<header/>
 		<body>
+			<trans-unit id="migrateCategoryRelationsCommand" xml:space="preserve">
+				<source>Migrate category relations</source>
+			</trans-unit>
 			<trans-unit id="connectDamRecordsWithSysFileCommand" xml:space="preserve">
 				<source>Migrating DAM records to sys_file records</source>
 			</trans-unit>

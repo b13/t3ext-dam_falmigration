@@ -23,12 +23,6 @@ if (TYPO3_MODE == 'BE') {
 		'description'      => 'Migrates all available DAM Selections in sys_file_collections (only folder based selections for now).',
 	);
 
-	$TYPO3_CONF_VARS['SC_OPTIONS']['scheduler']['tasks']['TYPO3\\CMS\\DamFalmigration\\Task\\MigrateDamCategoryRelationsTask'] = array(
-		'extension'        => $_EXTKEY,
-		'title'            => 'DAM-FAL Migration: Migrate DAM Category Relations',
-		'description'      => 'Migrates all Relations between DAM Categories and DAM files to FAL Files and Category.',
-	);
-
 	$TYPO3_CONF_VARS['SC_OPTIONS']['scheduler']['tasks']['TYPO3\\CMS\\DamFalmigration\\Task\\MigrateMediaTagTask'] = array(
 		'extension'        => $_EXTKEY,
 		'title'            => 'DAM-FAL Migration: Migrate media-Tags in tt_content',

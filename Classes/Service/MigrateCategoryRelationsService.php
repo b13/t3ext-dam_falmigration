@@ -1,5 +1,5 @@
 <?php
-namespace TYPO3\CMS\DamFalmigration\Task;
+namespace TYPO3\CMS\DamFalmigration\Service;
 
 /***************************************************************
  *  Copyright notice
@@ -26,9 +26,15 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+use TYPO3\CMS\Core\Messaging\FlashMessage;
 
 /**
- * Scheduler Task to Migrate Categories
+ * Service to Migrate Categories
+ *
+ * DAM-FAL Migration: Migrate DAM Category Relations
+ *
+ * Migrates all Relations between DAM Categories and DAM files to FAL Files and Category.
+ *
  * Finds all DAM categories and adds a DB field "_migrateddamcatuid"
  * to each category record
  *
@@ -37,20 +43,22 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *
  * @author Alexander Boehm <boehm@punkt.de>
  */
-class MigrateDamCategoryRelationsTask extends AbstractTask {
+class MigrateCategoryRelationsService extends AbstractService {
 
 	/**
 	 * main function, needs to return TRUE or FALSE in order to tell
 	 * the scheduler whether the task went through smoothly
 	 *
+	 * @param \B13\DamFalmigration\Controller\DamMigrationCommandController $parent Used to log output to console
+	 *
 	 * @throws \Exception
-	 * @return boolean
+	 *
+	 * @return FlashMessage
 	 */
-	public function execute() {
-		$this->init();
-
+	public function execute($parent) {
 		if ($this->isTableAvailable('tx_dam_mm_ref')) {
 			$categoryRelations = $this->getCategoryRelationsWhereSysCategoryExists();
+			$parent->infoMessage('Found ' . count($categoryRelations) . ' relations');
 			foreach ($categoryRelations as $categoryRelation) {
 				$insertData = array(
 					'uid_local' => $categoryRelation['sys_category_uid'],
@@ -67,12 +75,14 @@ class MigrateDamCategoryRelationsTask extends AbstractTask {
 						$insertData
 					);
 					$this->amountOfMigratedRecords++;
+					$parent->message('Migrating relation for category ' . $categoryRelation['sys_category_uid']);
+				} else {
+					$parent->message('Relation already migrated.');
 				}
 			}
-			$this->addResultMessage();
-			return TRUE;
+			return $this->getResultMessage();
 		} else {
-			throw new \Exception('Table tx_dam_mm_ref not found. So there is nothing to migrate.');
+			$parent->errorMessage('Table tx_dam_mm_ref not found. So there is nothing to migrate.');
 		}
 	}
 

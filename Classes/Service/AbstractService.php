@@ -71,6 +71,8 @@ abstract class AbstractService {
 
 	/**
 	 * initializes this object
+	 *
+	 * @return void
 	 */
 	public function initializeObject() {
 		$this->database = $GLOBALS['TYPO3_DB'];

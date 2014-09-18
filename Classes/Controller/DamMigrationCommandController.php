@@ -43,7 +43,6 @@ if (@exec('tput cols')) {
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\DamFalmigration\Service\MigrateRelations;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
@@ -409,6 +408,28 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 		}
 	}
 
+	/**
+	 * Migrate DAM Category Relations
+	 *
+	 * it is highly recommended to update the ref index afterwards
+	 */
+	public function migrateCategoryRelationsCommand() {
+		$this->headerMessage(LocalizationUtility::translate('migrateCategoryRelationsCommand', 'dam_falmigration'));
+		/** @var \TYPO3\CMS\DamFalmigration\Service\MigrateCategoryRelationsService $migrateRelationsService */
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateCategoryRelationsService');
+		/** @var \TYPO3\CMS\Core\Messaging\FlashMessage $message */
+		$message = $service->execute($this);
+
+		if ($message->getTitle()) {
+			$this->outputLine($message->getTitle());
+		}
+		if ($message->getMessage()) {
+			$this->outputLine($message->getMessage());
+		}
+		if ($message->getSeverity() !== FlashMessage::OK) {
+			$this->sendAndExit(1);
+		}
+	}
 
 	/**
 	 * migrate all damfrontend_pi1 plugins to tt_content.uploads with file_collection
@@ -525,8 +546,9 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	 */
 	public function migrateRelationsCommand() {
 		$this->headerMessage(LocalizationUtility::translate('migrateRelationsCommand', 'dam_falmigration'));
-		/** @var MigrateRelations $migrateRelationsService */
-		$migrateRelationsService = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRelations');
+		/** @var \TYPO3\CMS\DamFalmigration\Service\MigrateRelationsService $migrateRelationsService */
+		$migrateRelationsService = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRelationsService');
+		/** @var \TYPO3\CMS\Core\Messaging\FlashMessage $message */
 		$message = $migrateRelationsService->execute();
 
 		if ($message->getTitle()) {
