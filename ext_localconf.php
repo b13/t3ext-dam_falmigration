@@ -5,12 +5,6 @@ if (!defined('TYPO3_MODE')) {
 }
 
 if (TYPO3_MODE == 'BE') {
-	$TYPO3_CONF_VARS['SC_OPTIONS']['scheduler']['tasks']['TYPO3\\CMS\\DamFalmigration\\Task\\MigrateTask'] = array(
-		'extension'        => $_EXTKEY,
-		'title'            => 'DAM-FAL Migration: Migrate DAM Records to FAL Records',
-		'description'      => 'Migrates all available DAM records from fileadmin/ to the local storage of the FAL records.',
-	);
-
 	$TYPO3_CONF_VARS['SC_OPTIONS']['scheduler']['tasks']['TYPO3\\CMS\\DamFalmigration\\Task\\MigrateTtContentImagecaptionTask'] = array(
 		'extension'        => $_EXTKEY,
 		'title'            => 'DAM-FAL Migration: Migrate imagecaption in tt_content',

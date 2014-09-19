@@ -110,4 +110,26 @@ abstract class AbstractService {
 		return $messageObject;
 	}
 
+	/**
+	 * Sets the uid of the File storage record
+	 *
+	 * @return int
+	 */
+	public function getStorageUid() {
+		return $this->storageUid;
+	}
+
+	/**
+	 * Gets the uid of the File storage record
+	 *
+	 * @param int $storageUid
+	 *
+	 * @return $this to allow for chaining
+	 */
+	public function setStorageUid($storageUid) {
+		$this->storageUid = $storageUid;
+
+		return $this;
+	}
+
 }

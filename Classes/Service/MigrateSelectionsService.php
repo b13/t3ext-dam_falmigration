@@ -23,6 +23,7 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *  This copyright notice MUST APPEAR in all copies of the script!
  */
 use TYPO3\CMS\Core\Messaging\FlashMessage;
+use B13\DamFalmigration\Controller\DamMigrationCommandController;
 
 /**
  * Class MigrateSelectionsService
@@ -34,8 +35,8 @@ class MigrateSelectionsService extends AbstractService {
 	/**
 	 * main function, returns a FlashMessge
 	 *
-	 * @param \B13\DamFalmigration\Controller\DamMigrationCommandController $parent Used
-	 *    to log output to console
+	 * @param DamMigrationCommandController $parent Used to log output to
+	 *    console
 	 *
 	 * @return FlashMessage
 	 */

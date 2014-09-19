@@ -42,8 +42,8 @@ class MigrateRteMediaTagService extends AbstractService {
 	/**
 	 * main function, returns a FlashMessge
 	 *
-	 * @param DamMigrationCommandController $parent Used
-	 *    to log output to console
+	 * @param DamMigrationCommandController $parent Used to log output to
+	 *    console
 	 * @param string $table The table to search for RTE fields
 	 * @param string $field The fieldname to search
 	 *
