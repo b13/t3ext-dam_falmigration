@@ -1,5 +1,5 @@
 ﻿.. ==================================================
-.. FOR YOUR INFORMATION 
+.. FOR YOUR INFORMATION
 .. --------------------------------------------------
 .. -*- coding: utf-8 -*- with BOM.  Check: ÄÖÜäöüß
 
@@ -34,8 +34,10 @@ The available migration tasks can be found under the *extbase* cliKey:
 	                                           the sys_file
 	  dammigration:migratedammetadata          migrates DAM metadata to FAL
 	                                           metadata
-	  dammigration:migratemediatagsinrte       migrates the <media DAM_UID target
-	                                           title>Linktext</media>
+	  dammigration:migratemediatagsinrte       Migrates the <media DAM_UID target
+	                                           title>Linktext</media> to <link
+	                                           file:29643 -
+	                                           download>Linktext</link>
 	  dammigration:migratedamcategories        Migrate DAM categories to FAL
 	                                           categories
 	  dammigration:migratedamcategoriestofalcollections migrate all DAM categories to
@@ -49,7 +51,9 @@ The available migration tasks can be found under the *extbase* cliKey:
 	  dammigration:migraterelations            migrate relations to dam records
 	                                           that dam_ttcontent
 
-	See '/usr/bin/php typo3/cli_dispatch.phpsh extbase help <command identifier>' for more information about a specific command.
+
+.. note::
+	Some commands accept parameters. See '/usr/bin/php typo3/cli_dispatch.phpsh extbase help <command identifier>' for more information about a specific command.
 
 .. only:: html
 

@@ -27,6 +27,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
+use TYPO3\CMS\DamFalmigration\Service;
 
 // I can haz color / use unicode?
 if (DIRECTORY_SEPARATOR !== '\\') {
@@ -188,57 +189,19 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 
 
 	/**
-	 * migrates the <media DAM_UID target title>Linktext</media>
-	 * to <link file:29643 - download>My link to a file</link>
+	 * Migrates the <media DAM_UID target title>Linktext</media> to <link file:29643 - download>Linktext</link>
 	 *
 	 * @param \string $table the table to look for
 	 * @param \string $field the DB field to look for
 	 */
 	public function migrateMediaTagsInRteCommand($table = 'tt_content', $field = 'bodytext') {
 		$this->headerMessage(LocalizationUtility::translate('migrateMediaTagsInRteCommand', 'dam_falmigration'));
-		$recordsToMigrate = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
-			'uid, ' . $field,
-			$table,
-			'deleted=0 AND ' . $field . ' LIKE "%<media%"'
-		);
+		/** @var Service\MigrateRteMediaTagService $service */
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRteMediaTagService');
+		/** @var FlashMessage $message */
+		$message = $service->execute($this, $table, $field);
 
-		$this->infoMessage('Found ' . count($recordsToMigrate) . ' ' . $table . ' records that have a "<media>" tag in the field ' . $field);
-		foreach ($recordsToMigrate as $rec) {
-			$originalContent = $rec[ $field ];
-			$finalContent = $originalContent;
-			$results = array();
-			preg_match_all('/<media ([0-9]+)([^>]*)>(.*?)<\/media>/', $originalContent, $results, PREG_SET_ORDER);
-			if (count($results)) {
-				foreach ($results as $result) {
-					$searchString = $result[0];
-					$damUid = $result[1];
-					// see EXT:dam/mediatag/class.tx_dam_rtetransform_mediatag.php
-					list($linkTarget, $linkClass, $linkTitle) = explode(' ', trim($result[2]), 3);
-					$linkText = $result[3];
-					$this->message('Replacing "' . $result[0] . '" with DAM UID ' . $damUid . ' (target ' . $linkTarget . '; class ' . $linkClass . '; title "' . $linkTitle . '") and linktext "' . $linkText . '"');
-					// fetch the DAM uid from sys_file
-					// and replace the full tag with a valid href="file:FALUID"
-					// <link file:29643 - download>My link to a file</link>
-					$falRecord = $GLOBALS['TYPO3_DB']->exec_SELECTgetSingleRow('uid', 'sys_file', '_migrateddamuid=' . intval($damUid));
-					if (is_array($falRecord)) {
-						$replaceString = '<link file:' . $falRecord['uid'] . ' ' . $result[2] . '>' . $linkText . '</link>';
-						$finalContent = str_replace($searchString, $replaceString, $finalContent);
-					}
-				}
-				// update the record
-				if ($finalContent !== $originalContent) {
-					$GLOBALS['TYPO3_DB']->exec_UPDATEquery(
-						$table,
-						'uid=' . $rec['uid'],
-						array($field => $finalContent)
-					);
-					$this->infoMessage('Updated ' . $table . ':' . $rec['uid'] . ' with: ' . $finalContent);
-				}
-			} else {
-				$this->warningMessage('Nothing found: ' . $originalContent);
-			}
-		}
-		$this->successMessage('DONE');
+		$this->outputMessage($message);
 	}
 
 	/**
@@ -417,7 +380,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	 */
 	public function migrateCategoryRelationsCommand() {
 		$this->headerMessage(LocalizationUtility::translate('migrateCategoryRelationsCommand', 'dam_falmigration'));
-		/** @var \TYPO3\CMS\DamFalmigration\Service\MigrateCategoryRelationsService $migrateRelationsService */
+		/** @var Service\MigrateCategoryRelationsService $migrateRelationsService */
 		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateCategoryRelationsService');
 		/** @var \TYPO3\CMS\Core\Messaging\FlashMessage $message */
 		$message = $service->execute($this);
@@ -549,7 +512,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	 */
 	public function migrateRelationsCommand() {
 		$this->headerMessage(LocalizationUtility::translate('migrateRelationsCommand', 'dam_falmigration'));
-		/** @var \TYPO3\CMS\DamFalmigration\Service\MigrateRelationsService $migrateRelationsService */
+		/** @var Service\MigrateRelationsService $migrateRelationsService */
 		$migrateRelationsService = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRelationsService');
 		/** @var \TYPO3\CMS\Core\Messaging\FlashMessage $message */
 		$message = $migrateRelationsService->execute();
@@ -572,7 +535,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	 */
 	public function migrateSelectionsCommand() {
 		$this->headerMessage(LocalizationUtility::translate('migrateSelectionsCommand', 'dam_falmigration'));
-		/** @var \TYPO3\CMS\DamFalmigration\Service\MigrateSelectionsService $migrateSelectionsService */
+		/** @var Service\MigrateSelectionsService $migrateSelectionsService */
 		$migrateSelectionsService = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateSelectionsService');
 		/** @var \TYPO3\CMS\Core\Messaging\FlashMessage $message */
 		$message = $migrateSelectionsService->execute($this);
@@ -628,6 +591,25 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 		$dataHandler->start($data, array());
 		$dataHandler->admin = TRUE;
 		$dataHandler->process_datamap();
+	}
+
+	/**
+	 * Output FlashMessage
+	 *
+	 * @param FlashMessage $message
+	 *
+	 * @return void
+	 */
+	public function outputMessage($message = NULL) {
+		if ($message->getTitle()) {
+			$this->outputLine($message->getTitle());
+		}
+		if ($message->getMessage()) {
+			$this->outputLine($message->getMessage());
+		}
+		if ($message->getSeverity() !== FlashMessage::OK) {
+			$this->sendAndExit(1);
+		}
 	}
 
 	/**
