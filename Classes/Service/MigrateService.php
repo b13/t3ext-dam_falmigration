@@ -1,36 +1,34 @@
 <?php
-namespace TYPO3\CMS\DamFalmigration\Task;
+namespace TYPO3\CMS\DamFalmigration\Service;
 
-/***************************************************************
+/**
  *  Copyright notice
  *
  *  (c) 2012 Benjamin Mack <benni@typo3.org>
  *  All rights reserved
  *
- *  This script is part of the TYPO3 project. The TYPO3 project is
- *  free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  This script is part of the TYPO3 project. The TYPO3 project is free
+ *  software; you can redistribute it and/or modify it under the terms of the
+ *  GNU General Public License as published by the Free Software Foundation;
+ *  either version 2 of the License, or (at your option) any later version.
  *
  *  The GNU General Public License can be found at
  *  http://www.gnu.org/copyleft/gpl.html.
- *  A copy is found in the textfile GPL.txt and important notices to the license
- *  from the author is found in LICENSE.txt distributed with these scripts.
  *
- *  This script is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  This script is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ *  more details.
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
- ***************************************************************/
-use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
+ */
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
+use B13\DamFalmigration\Controller\DamMigrationCommandController;
 
 /**
- * Scheduler Task to Migrate Records
+ * Service to Migrate Records
  * Finds all DAM records that have not been migrated yet
  * and adds a DB field "_migrateddamuid" to each FAL record
  * to connect the DAM and FAL DB records
@@ -40,7 +38,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  *
  * @author Benjamin Mack <benni@typo3.org>
  */
-class MigrateTask extends AbstractTask {
+class MigrateService extends AbstractService {
 
 	/**
 	 * how to map cols for meta data
@@ -85,20 +83,30 @@ class MigrateTask extends AbstractTask {
 	 * main function, needs to return TRUE or FALSE in order to tell
 	 * the scheduler whether the task went through smoothly
 	 *
+	 * @param DamMigrationCommandController $parent Used to log output to
+	 *    console
+	 *
 	 * @throws \TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException
 	 * @throws \Exception
-	 * @return boolean
+	 * @return FlashMessage
 	 */
-	public function execute() {
-		$this->init();
-
+	public function execute($parent) {
 		if ($this->isTableAvailable('tx_dam')) {
+
 			$rows = $this->getNotMigratedDamRecords();
+
+			$parent->infoMessage('Found ' . count($rows) . ' DAM records with no connected sys_file entry');
+
 			foreach ($rows as $damRecord) {
 				if ($this->isValidDirectory($damRecord)) {
 					try {
-						$fileObject = $this->storageObject->getFile($this->getFullFileName($damRecord));
+						$fullFileName = $this->getFullFileName($damRecord);
+						$fileObject = $this->storageObject->getFile($fullFileName);
 						if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
+							if ($fileObject->isMissing()) {
+								$this->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $damRecord['uid'] . ': "' . $fullFileName . '"');
+								continue;
+							}
 							$this->migrateFileFromDamToFal($damRecord, $fileObject);
 							$this->amountOfMigratedRecords++;
 						}
@@ -110,20 +118,15 @@ class MigrateTask extends AbstractTask {
 				}
 			}
 
-			$this->addResultMessage();
 
-			$messageObject = GeneralUtility::makeInstance(
-				'TYPO3\\CMS\\Core\\Messaging\\FlashMessage',
-				'Not migrated dam records at start of task: ' . count($rows) . '. Migrated files after task: ' . $this->amountOfMigratedRecords . '. Files not found: ' . $this->amountOfFilesNotFound . '.',
-				'file analyse'
+			$parent->message(
+				'Not migrated dam records at start of task: ' . count($rows) . '. Migrated files after task: ' . $this->amountOfMigratedRecords . '. Files not found: ' . $this->amountOfFilesNotFound . '.'
 			);
-			FlashMessageQueue::addMessage($messageObject);
-
-			// mark task as successful executed
-			return TRUE;
 		} else {
-			throw new \Exception('Extension tx_dam is not installed. So there is nothing to migrate.');
+			$parent->errorMessage('Extension tx_dam is not installed. So there is nothing to migrate.');
 		}
+
+		return $this->getResultMessage();
 	}
 
 	/**
@@ -131,54 +134,11 @@ class MigrateTask extends AbstractTask {
 	 * For now we check only for fileadmin directory
 	 *
 	 * @param array $damRecord
+	 *
 	 * @return bool
 	 */
 	protected function isValidDirectory(array $damRecord) {
 		return GeneralUtility::isFirstPartOfStr($this->getFileIdentifier($damRecord), 'fileadmin/');
-	}
-
-	/**
-	 * get a count of all dam records
-	 *
-	 * @return array
-	 */
-	protected function countAllDamRecords() {
-		if ($this->database === NULL) {
-			$this->init();
-		}
-		$row = $this->database->exec_SELECTgetSingleRow(
-			'COUNT(*) as recordCount',
-			'tx_dam',
-			'tx_dam.deleted = 0'
-		);
-		if ($row === NULL) {
-			// SQL error appears
-			return 0;
-		} else {
-			return $row['recordCount'];
-		}
-	}
-
-	/**
-	 * get a count of all dam records which have not been migrated yet
-	 *
-	 * @return array
-	 */
-	protected function countNotMigratedDamRecords() {
-		if ($this->database === NULL) {
-			$this->init();
-		}
-		$row = $this->database->exec_SELECTgetSingleRow(
-			'COUNT(*) as recordCount',
-			'tx_dam LEFT JOIN sys_file ON (tx_dam.uid = sys_file._migrateddamuid)',
-			'sys_file.uid IS NULL AND tx_dam.deleted = 0'
-		);
-		if ($row === NULL) {
-			// SQL error appears
-			return 0;
-		} else {
-			return $row['recordCount'];
-		}
 	}
 
 	/**
@@ -226,6 +186,7 @@ class MigrateTask extends AbstractTask {
 	 * create file identifier from dam record
 	 *
 	 * @param array $damRecord
+	 *
 	 * @return string
 	 */
 	protected function getFileIdentifier(array $damRecord) {
@@ -236,10 +197,10 @@ class MigrateTask extends AbstractTask {
 	 * remove storage name from fileIdentifier
 	 *
 	 * @param $damRecord
+	 *
 	 * @return mixed
 	 */
 	protected function getFullFileName($damRecord) {
-		// maybe substr is faster but as long as fileadmin directory is configurable in installtool I think str_replace is better
 		return str_replace('fileadmin', '', $this->getFileIdentifier($damRecord));
 	}
 
@@ -248,6 +209,7 @@ class MigrateTask extends AbstractTask {
 	 *
 	 * @param array $damRecord
 	 * @param \TYPO3\CMS\Core\Resource\File $fileObject
+	 *
 	 * @throws \Exception
 	 * @return void
 	 */
@@ -277,6 +239,7 @@ class MigrateTask extends AbstractTask {
 	 * create an array for insert or updating the sys_file record
 	 *
 	 * @param array $damRecord
+	 *
 	 * @return array
 	 */
 	protected function createArrayForUpdateInsertSysFileRecord(array $damRecord) {
@@ -295,24 +258,7 @@ class MigrateTask extends AbstractTask {
 				$updateData[$metaColName] = $damRecord[$damColName];
 			}
 		}
+
 		return $updateData;
 	}
-
-	/**
-	 * Returns some additional information about migration progress, shown in
-	 * the scheduler's task overview list.
-	 *
-	 * @return string Information to display
-	 */
-	public function getAdditionalInformation() {
-		$string = $GLOBALS['LANG']->sL(
-			'LLL:EXT:dam_falmigration/Resources/Private/Language/locallang.xlf:tasks.migrate.additionalInformation'
-		);
-		$migratedCount = $this->countMigratedDamRecords();
-		$totalCount = $this->countAllDamRecords();
-		$percentage = sprintf('%.1f%%', 100 * $migratedCount / $totalCount);
-		$message = sprintf($string, $percentage, number_format($migratedCount), number_format($totalCount), number_format($this->countNotMigratedDamRecords()));
-		return $message;
-	}
-
 }

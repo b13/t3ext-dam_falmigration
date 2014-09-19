@@ -1,28 +1,33 @@
 <?php
 namespace B13\DamFalmigration\Controller;
 
-/***************************************************************
+/**
  *  Copyright notice
  *
  *  (c) 2013 Benjamin Mack <typo3@b13.de>
  *  All rights reserved
  *
- *  This script is part of the TYPO3 project. The TYPO3 project is
- *  free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  This script is part of the TYPO3 project. The TYPO3 project is free
+ *  software; you can redistribute it and/or modify it under the terms of
+ * the GNU General Public License as published by the Free Software
+ * Foundation; either version 2 of the License, or (at your option) any
+ * later version.
  *
  *  The GNU General Public License can be found at
  *  http://www.gnu.org/copyleft/gpl.html.
  *
- *  This script is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  This script is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
- ***************************************************************/
+ */
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
+use TYPO3\CMS\DamFalmigration\Service;
 
 // I can haz color / use unicode?
 if (DIRECTORY_SEPARATOR !== '\\') {
@@ -40,12 +45,6 @@ if (@exec('tput cols')) {
 	define('TERMINAL_WIDTH', 79);
 }
 
-use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Messaging\FlashMessage;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\DamFalmigration\Service\MigrateRelations;
-use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
-
 /**
  * Command Controller to execute DAM to FAL Migration scripts
  *
@@ -55,192 +54,46 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\CommandController {
 
 	/**
-	 * goes through all DAM files and checks if they have a counterpart in the sys_file
-	 * table. If not, fetch the file (via the storage, which indexes the file directly)
-	 * and update the DAM DB table
-	 * Please note that this does not migrate the metadata
-	 * this command can be run multiple times
+	 * Migrates all DAM records to FAL. A DB field "_migrateddamuid" connects each FAL record to the original DAM record.
 	 *
-	 * @param int|string $storageUid the UID of the storage (usually 1, don't modify if you are unsure)
+	 * @param int|string $storageUid the UID of the storage (usually 1, don't
+	 *    modify if you are unsure)
+	 *
+	 * @return void
 	 */
-	public function connectDamRecordsWithSysFileCommand($storageUid = 1) {
+	public function migrateDamRecordsCommand($storageUid = 1) {
 		$this->headerMessage(LocalizationUtility::translate('connectDamRecordsWithSysFileCommand', 'dam_falmigration'));
-
-		$fileFactory = \TYPO3\CMS\Core\Resource\ResourceFactory::getInstance();
-
-		// create the storage object
-		$storageObject = $fileFactory->getStorageObject($storageUid);
-		$migratedFiles = 0;
-
-		// get all DAM records that have not been migrated yet
-		$damRecords = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
-			'*',
-			'tx_dam',
-			// check for all FAL records that are there, that have been migrated already
-			// seen by the "_migrateddamuid" flag
-			'deleted=0 AND uid NOT IN (SELECT _migrateddamuid FROM sys_file WHERE _migrateddamuid > 0)'
-		);
-
-		$this->infoMessage('Found ' . count($damRecords) . ' DAM records with no connected sys_file entry');
-
-		foreach ($damRecords as $damRecord) {
-
-			$damUid = $damRecord['uid'];
-			$fileIdentifier = $damRecord['file_path'] . $damRecord['file_name'];
-
-			// right now, only files in fileadmin/ are supported
-			if (GeneralUtility::isFirstPartOfStr($fileIdentifier, 'fileadmin/') === FALSE) {
-				continue;
-			}
-
-			// strip away the "fileadmin/" prefix
-			$fullFileName = substr($fileIdentifier, 10);
-
-			// check if the DAM record is already indexed for FAL (based on the filename)
-			$fileObject = NULL;
-			try {
-				$fileObject = $storageObject->getFile($fullFileName);
-			} catch (\TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException $e) {
-				// file not found jump to next file
-				continue;
-			} catch (\Exception $e) {
-				$this->errorMessage('File not found: "' . $fullFileName . '"');
-				continue;
-			}
-
-			// add the migrated uid of the DAM record to the FAL record
-			if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
-				if ($fileObject->isMissing()) {
-					$this->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $damUid . ': "' . $fullFileName . '"');
-					continue;
-				}
-				$GLOBALS['TYPO3_DB']->exec_UPDATEquery(
-					'sys_file',
-					'uid=' . $fileObject->getUid(),
-					array('_migrateddamuid' => $damUid)
-				);
-				$migratedFiles++;
-				$this->successMessage('DAM File is now indexed for FAL. FAL uid: ' . $fileObject->getUid() . ', DAM uid: ' . $damUid . ': "' . $fullFileName . '"');
-			} else {
-				$this->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $damUid . ': "' . $fullFileName . '"');
-			}
-		}
-
-		// print a message
-		if ($migratedFiles > 0) {
-			$this->successMessage(LocalizationUtility::translate('migrationSuccessful', 'dam_falmigration'));
-			$this->successMessage(LocalizationUtility::translate('migratedFiles', 'dam_falmigration', array(0 => $migratedFiles)));
-		} else {
-			$this->infoMessage(LocalizationUtility::translate('migrationNotNecessary', 'dam_falmigration'));
-			$this->infoMessage(LocalizationUtility::translate('allFilesMigrated', 'dam_falmigration'));
-		}
+		/** @var Service\MigrateService $service */
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateService');
+		$service->setStorageUid((int)$storageUid);
+		$this->outputMessage($service->execute($this));
 	}
 
-
 	/**
-	 * migrates DAM metadata to FAL metadata
-	 * searches for all sys_file records that don't have any titles yet
-	 * with a connection to a _dammigration record
+	 * Migrates DAM metadata to FAL metadata. Searches for all migrated sys_file records that don't have any titles yet.
+	 *
+	 * @return void
 	 */
 	public function migrateDamMetadataCommand() {
 		$this->headerMessage(LocalizationUtility::translate('migrateDamMetadataCommand', 'dam_falmigration'));
-		$recordsToMigrate = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
-			'DISTINCT m.uid AS metadata_uid, f._migrateddamuid AS damuid, d.*',
-			'sys_file f, sys_file_metadata m, tx_dam d',
-			'm.file=f.uid AND f._migrateddamuid=d.uid AND f._migrateddamuid > 0 AND m.title IS NULL'
-		);
-
-		$this->infoMessage('Found ' . count($recordsToMigrate) . ' sys_file_metadata records that have no title but associated with a DAM record that has a title');
-
-		$migratedRecords = 0;
-		$hasAdvancedMetadata = \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::isLoaded('filemetadata');
-		foreach ($recordsToMigrate as $rec) {
-			$metaData = array(
-				'title' => $rec['title'],
-				'description' => (string)$rec['description'],
-				'alternative' => $rec['alt_text']
-			);
-			if ($hasAdvancedMetadata) {
-				$metaData['visible'] = $rec['hidden'];
-				$metaData['keywords'] = $rec['keywords'];
-				$metaData['caption'] = $rec['caption'];
-				$metaData['publisher'] = $rec['publisher'];
-				$metaData['location_country'] = $rec['loc_country'];
-				$metaData['location_city'] = $rec['loc_city'];
-				$metaData['download_name'] = $rec['file_dl_name'];
-				$metaData['creator'] = $rec['creator'];
-				$metaData['fe_groups'] = $rec['fe_group'];
-				$metaData['content_creation_date'] = $rec['date_cr'];
-				$metaData['content_modification_date'] = $rec['date_mod'];
-				$metaData['note'] = $rec['instructions'];
-				$metaData['unit'] = $rec['height_unit'];
-				$metaData['color_space'] = $rec['color_space'];
-				$metaData['language'] = $rec['language'];
-			}
-			$GLOBALS['TYPO3_DB']->exec_UPDATEquery(
-				'sys_file_metadata',
-				'uid = ' . intval($rec['metadata_uid']),
-				$metaData
-			);
-			$migratedRecords++;
-		}
-
-		$this->successMessage('Migrated title, description and alt_text for ' . $migratedRecords . ' records');
+		/** @var Service\MigrateMetadataService $service */
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateMetadataService');
+		$this->outputMessage($service->execute($this));
 	}
 
-
 	/**
-	 * migrates the <media DAM_UID target title>Linktext</media>
-	 * to <link file:29643 - download>My link to a file</link>
+	 * Migrates the <media DAM_UID target title>Linktext</media> to <link file:29643 - download>Linktext</link>
 	 *
 	 * @param \string $table the table to look for
 	 * @param \string $field the DB field to look for
+	 *
+	 * @return void
 	 */
 	public function migrateMediaTagsInRteCommand($table = 'tt_content', $field = 'bodytext') {
 		$this->headerMessage(LocalizationUtility::translate('migrateMediaTagsInRteCommand', 'dam_falmigration'));
-		$recordsToMigrate = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
-			'uid, ' . $field,
-			$table,
-			'deleted=0 AND ' . $field . ' LIKE "%<media%"'
-		);
-
-		$this->infoMessage('Found ' . count($recordsToMigrate) . ' ' . $table . ' records that have a "<media>" tag in the field ' . $field);
-		foreach ($recordsToMigrate as $rec) {
-			$originalContent = $rec[$field];
-			$finalContent = $originalContent;
-			$results = array();
-			preg_match_all('/<media ([0-9]+)([^>]*)>(.*?)<\/media>/', $originalContent, $results, PREG_SET_ORDER);
-			if (count($results)) {
-				foreach ($results as $result) {
-					$searchString = $result[0];
-					$damUid = $result[1];
-					// see EXT:dam/mediatag/class.tx_dam_rtetransform_mediatag.php
-					list($linkTarget, $linkClass, $linkTitle) = explode(' ', trim($result[2]), 3);
-					$linkText = $result[3];
-					$this->message('Replacing "' . $result[0] . '" with DAM UID ' . $damUid . ' (target ' . $linkTarget . '; class ' . $linkClass . '; title "' . $linkTitle . '") and linktext "' . $linkText . '"');
-					// fetch the DAM uid from sys_file
-					// and replace the full tag with a valid href="file:FALUID"
-					// <link file:29643 - download>My link to a file</link>
-					$falRecord = $GLOBALS['TYPO3_DB']->exec_SELECTgetSingleRow('uid', 'sys_file', '_migrateddamuid=' . intval($damUid));
-					if (is_array($falRecord)) {
-						$replaceString = '<link file:' . $falRecord['uid'] . ' ' . $result[2] . '>' . $linkText . '</link>';
-						$finalContent = str_replace($searchString, $replaceString, $finalContent);
-					}
-				}
-				// update the record
-				if ($finalContent !== $originalContent) {
-					$GLOBALS['TYPO3_DB']->exec_UPDATEquery(
-						$table,
-						'uid=' . $rec['uid'],
-						array($field => $finalContent)
-					);
-					$this->infoMessage('Updated ' . $table . ':' . $rec['uid'] . ' with: ' . $finalContent);
-				}
-			} else {
-				$this->warningMessage('Nothing found: ' . $originalContent);
-			}
-		}
-		$this->successMessage('DONE');
+		/** @var Service\MigrateRteMediaTagService $service */
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRteMediaTagService');
+		$this->outputMessage($service->execute($this, $table, $field));
 	}
 
 	/**
@@ -248,7 +101,8 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	 *
 	 * @param integer $initialParentUid Initial parent UID
 	 * @param integer $storagePid Store on PID
-	 * @return bool
+	 *
+	 * @return void
 	 */
 	public function migrateDamCategoriesCommand($initialParentUid = 0, $storagePid) {
 		$this->headerMessage(LocalizationUtility::translate('migrateDamCategoriesCommand', 'dam_falmigration'));
@@ -273,14 +127,14 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 			$amountOfMigratedRecords = 0;
 			foreach ($damCategories as $category) {
 
-				$newParentUid = $parentUidMap[$category['parent_id']];
+				$newParentUid = $parentUidMap[ $category['parent_id'] ];
 
 				// create the new category in table sys_category
 				$newUid = $databaseHelper->createNewCategory($category, $newParentUid, $storagePid);
 
-				$this->message(LocalizationUtility::translate('creatingCategory', 'dam_falmigration'), array($category['title']));
+				$this->message(LocalizationUtility::translate('creatingCategory', 'dam_falmigration', array($category['title'])));
 
-				$parentUidMap[$category['uid']] = $newUid;
+				$parentUidMap[ $category['uid'] ] = $newUid;
 				$amountOfMigratedRecords++;
 			}
 
@@ -306,12 +160,15 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	 * as a pre-requisite, there needs to be sys_file records that
 	 * have been migrated from DAM
 	 *
-	 * @param bool|string $migrateReferences whether just the categories should be migrated or the references as well
+	 * @param integer $fileCollectionStoragePid The page id on which to store
+	 *    the collections
+	 * @param bool|string $migrateReferences whether just the categories should
+	 *    be migrated or the references as well
+	 *
+	 * @return void
 	 */
-	public function migrateDamCategoriesToFalCollectionsCommand($migrateReferences = TRUE) {
+	public function migrateDamCategoriesToFalCollectionsCommand($fileCollectionStoragePid = 0, $migrateReferences = TRUE) {
 		$this->headerMessage(LocalizationUtility::translate('migrateDamCategoriesToFalCollectionsCommand', 'dam_falmigration'));
-
-		$fileCollectionStoragePid = 44;
 
 		$databaseHelper = \B13\DamFalmigration\Helper\DatabaseHelper::getInstance();
 
@@ -331,7 +188,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 			);
 
 			foreach ($mmRelations as $relation) {
-				$damCategories[$relation['categoryuid']]['files'][] = $falRecords[$relation['damuid']]['uid'];
+				$damCategories[ $relation['categoryuid'] ]['files'][] = $falRecords[ $relation['damuid'] ]['uid'];
 			}
 
 			// create FAL collections out of the categories
@@ -358,20 +215,20 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 				);
 
 				if (is_array($existingFileCollection)) {
-					$damCategories[$damCategoryUid]['falcollectionuid'] = $existingFileCollection['uid'];
+					$damCategories[ $damCategoryUid ]['falcollectionuid'] = $existingFileCollection['uid'];
 					$this->infoMessage('DAM category ' . $damCategoryUid . ' has the existing FAL collection ' . $existingFileCollection['uid']);
 				} else {
 
 					$GLOBALS['TYPO3_DB']->exec_INSERTquery(
 						'sys_file_collection',
 						array(
-							'pid' => $fileCollectionStoragePid,
+							'pid' => (int)$fileCollectionStoragePid,
 							'title' => $categoryInfo['title'],
 							'_migrateddamcatuid' => $damCategoryUid
 						)
 					);
-					$damCategories[$damCategoryUid]['falcollectionuid'] = $GLOBALS['TYPO3_DB']->sql_insert_id();
-					$this->infoMessage('New FAL collection added (uid ' . $damCategories[$damCategoryUid]['falcollectionuid'] . ') from DAM category ' . $damCategoryUid);
+					$damCategories[ $damCategoryUid ]['falcollectionuid'] = $GLOBALS['TYPO3_DB']->sql_insert_id();
+					$this->infoMessage('New FAL collection added (uid ' . $damCategories[ $damCategoryUid ]['falcollectionuid'] . ') from DAM category ' . $damCategoryUid);
 				}
 			}
 
@@ -410,10 +267,24 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 		}
 	}
 
+	/**
+	 * Migrate DAM Category Relations
+	 *
+	 * it is highly recommended to update the ref index afterwards
+	 *
+	 * @return void
+	 */
+	public function migrateCategoryRelationsCommand() {
+		$this->headerMessage(LocalizationUtility::translate('migrateCategoryRelationsCommand', 'dam_falmigration'));
+		/** @var Service\MigrateCategoryRelationsService $migrateRelationsService */
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateCategoryRelationsService');
+		$this->outputMessage($service->execute($this));
+	}
 
 	/**
-	 * migrate all damfrontend_pi1 plugins to tt_content.uploads with file_collection
-	 * usually used in conjunction with / after migrateDamCategoriesToFalCollectionsCommand()
+	 * migrate all damfrontend_pi1 plugins to tt_content.uploads with file_collection usually used in conjunction with / after migrateDamCategoriesToFalCollectionsCommand()
+	 *
+	 * @return void
 	 */
 	public function migrateDamFrontendPluginsCommand() {
 		$this->headerMessage(LocalizationUtility::translate('migrateDamFrontendPluginsCommand', 'dam_falmigration'));
@@ -454,8 +325,8 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 			$fileCollections = array();
 
 			foreach ($usedDamCategories as $damCategoryUid) {
-				if (isset($migratedFileCollections[$damCategoryUid])) {
-					$fileCollections[] = $migratedFileCollections[$damCategoryUid]['uid'];
+				if (isset($migratedFileCollections[ $damCategoryUid ])) {
+					$fileCollections[] = $migratedFileCollections[ $damCategoryUid ]['uid'];
 				}
 			}
 
@@ -478,10 +349,11 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 
 
 	/**
-	 * checks if there are multiple entries in sys_file_reference that contain
-	 * the same uid_local and uid_foreign with sys_file_collection references
-	 * and removes the duplicates
-	 * NOTE: this command is usually *NOT* necessary, but only if something went wrong
+	 * Checks if there are multiple entries in sys_file_reference that contain the same uid_local and uid_foreign with sys_file_collection references and removes the duplicates
+	 * NOTE: this command is usually *NOT* necessary, but only if something
+	 * went wrong
+	 *
+	 * @return void
 	 */
 	public function cleanupDuplicateFalCollectionReferencesCommand() {
 		$this->headerMessage(LocalizationUtility::translate('cleanupDuplicateFalCollectionReferencesCommand', 'dam_falmigration'));
@@ -509,6 +381,8 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 
 	/**
 	 * updates the reference index
+	 *
+	 * @return void
 	 */
 	public function updateReferenceIndexCommand() {
 		$this->headerMessage(LocalizationUtility::translate('updateReferenceIndexCommand', 'dam_falmigration'));
@@ -519,35 +393,42 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	}
 
 	/**
-	 * migrate relations to dam records that dam_ttcontent
-	 * and dam_uploads introduced
+	 * migrate relations to dam records that dam_ttcontent and dam_uploads introduced
 	 *
 	 * it is highly recommended to update the ref index afterwards
+	 *
+	 * @return void
 	 */
 	public function migrateRelationsCommand() {
 		$this->headerMessage(LocalizationUtility::translate('migrateRelationsCommand', 'dam_falmigration'));
-		/** @var MigrateRelations $migrateRelationsService */
-		$migrateRelationsService = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRelations');
-		$message = $migrateRelationsService->execute();
+		/** @var Service\MigrateRelationsService $migrateRelationsService */
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRelationsService');
+		$this->outputMessage($service->execute($this));
+	}
 
-		if ($message->getTitle()) {
-			$this->outputLine($message->getTitle());
-		}
-		if ($message->getMessage()) {
-			$this->outputLine($message->getMessage());
-		}
-		if ($message->getSeverity() !== FlashMessage::OK) {
-			$this->sendAndExit(1);
-		}
+	/**
+	 * Migrates all available DAM Selections in sys_file_collections (only folder based selections for now).
+	 *
+	 * it is highly recommended to update the ref index afterwards
+	 *
+	 * @return void
+	 */
+	public function migrateSelectionsCommand() {
+		$this->headerMessage(LocalizationUtility::translate('migrateSelectionsCommand', 'dam_falmigration'));
+		/** @var Service\MigrateSelectionsService $migrateSelectionsService */
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateSelectionsService');
+		$this->outputMessage($service->execute($this));
 	}
 
 	/**
 	 * Migrate tt_news_categorymounts to category_pems in either be_groups or be_users
 	 *
 	 * @param string $table either be_groups or be_users
+	 *
+	 * @return void
 	 */
 	public function migrateDamCategoryMountsToSysCategoryPerms($table) {
-		$this->headerMessage(LocalizationUtility::translate('migrateDamCategoryMountsToSysCategoryPerms', 'dam_falmigration'));
+		$this->headerMessage(LocalizationUtility::translate('migrateDamCategoryMountsToSysCategoryPerms', 'dam_falmigration', array($table)));
 		/** @var \TYPO3\CMS\Core\DataHandling\DataHandler $dataHandler */
 		$dataHandler = GeneralUtility::makeInstance('TYPO3\CMS\Core\DataHandling\DataHandler');
 
@@ -572,7 +453,7 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 
 			}
 			if (count($sysCategoryPermissions)) {
-				$data[$table][$beGroupOrUser['uid']] = array(
+				$data[ $table ][ $beGroupOrUser['uid'] ] = array(
 					'category_perms' => implode(',', $sysCategoryPermissions) . ',' . $beGroupOrUser['category_perms']
 				);
 			}
@@ -580,6 +461,25 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 		$dataHandler->start($data, array());
 		$dataHandler->admin = TRUE;
 		$dataHandler->process_datamap();
+	}
+
+	/**
+	 * Output FlashMessage
+	 *
+	 * @param FlashMessage $message
+	 *
+	 * @return void
+	 */
+	public function outputMessage($message = NULL) {
+		if ($message->getTitle()) {
+			$this->outputLine($message->getTitle());
+		}
+		if ($message->getMessage()) {
+			$this->outputLine($message->getMessage());
+		}
+		if ($message->getSeverity() !== FlashMessage::OK) {
+			$this->sendAndExit(1);
+		}
 	}
 
 	/**

@@ -1,5 +1,5 @@
 <?php
-namespace TYPO3\CMS\DamFalmigration\Task;
+namespace TYPO3\CMS\DamFalmigration\Service;
 
 /***************************************************************
  *  Copyright notice
@@ -15,8 +15,9 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *
  *  The GNU General Public License can be found at
  *  http://www.gnu.org/copyleft/gpl.html.
- *  A copy is found in the textfile GPL.txt and important notices to the license
- *  from the author is found in LICENSE.txt distributed with these scripts.
+ *  A copy is found in the textfile GPL.txt and important notices to the
+ * license from the author is found in LICENSE.txt distributed with these
+ * scripts.
  *
  *
  *  This script is distributed in the hope that it will be useful,
@@ -26,9 +27,16 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+use TYPO3\CMS\Core\Messaging\FlashMessage;
 
 /**
- * Scheduler Task to Migrate Categories
+ * Service to Migrate Categories
+ *
+ * DAM-FAL Migration: Migrate DAM Category Relations
+ *
+ * Migrates all Relations between DAM Categories and DAM files to FAL Files
+ * and Category.
+ *
  * Finds all DAM categories and adds a DB field "_migrateddamcatuid"
  * to each category record
  *
@@ -37,20 +45,22 @@ namespace TYPO3\CMS\DamFalmigration\Task;
  *
  * @author Alexander Boehm <boehm@punkt.de>
  */
-class MigrateDamCategoryRelationsTask extends AbstractTask {
+class MigrateCategoryRelationsService extends AbstractService {
 
 	/**
-	 * main function, needs to return TRUE or FALSE in order to tell
-	 * the scheduler whether the task went through smoothly
+	 * main function, returns a FlashMessge
+	 *
+	 * @param \B13\DamFalmigration\Controller\DamMigrationCommandController $parent Used
+	 *    to log output to console
 	 *
 	 * @throws \Exception
-	 * @return boolean
+	 *
+	 * @return FlashMessage
 	 */
-	public function execute() {
-		$this->init();
-
+	public function execute($parent) {
 		if ($this->isTableAvailable('tx_dam_mm_ref')) {
 			$categoryRelations = $this->getCategoryRelationsWhereSysCategoryExists();
+			$parent->infoMessage('Found ' . count($categoryRelations) . ' relations');
 			foreach ($categoryRelations as $categoryRelation) {
 				$insertData = array(
 					'uid_local' => $categoryRelation['sys_category_uid'],
@@ -67,18 +77,23 @@ class MigrateDamCategoryRelationsTask extends AbstractTask {
 						$insertData
 					);
 					$this->amountOfMigratedRecords++;
+					$parent->message('Migrating relation for category ' . $categoryRelation['sys_category_uid']);
+				} else {
+					$parent->message('Relation already migrated.');
 				}
 			}
-			$this->addResultMessage();
-			return TRUE;
+
+			return $this->getResultMessage();
 		} else {
-			throw new \Exception('Table tx_dam_mm_ref not found. So there is nothing to migrate.');
+			$parent->errorMessage('Table tx_dam_mm_ref not found. So there is nothing to migrate.');
 		}
 	}
 
 	/**
-	 * After a migration of tx_dam_cat -> sys_category the col _migrateddamcatuid is filled with dam category uid
-	 * Now we can search in dam category relations for dam categories which have already been migrated to sys_category
+	 * After a migration of tx_dam_cat -> sys_category the col
+	 * _migrateddamcatuid is filled with dam category uid Now we can search in
+	 * dam category relations for dam categories which have already been
+	 * migrated to sys_category
 	 *
 	 * @throws \Exception
 	 * @return array
@@ -93,13 +108,16 @@ class MigrateDamCategoryRelationsTask extends AbstractTask {
 			throw new \Exception('SQL-Error in getCategoryRelationsWhereSysCategoryExists()', 1382968725);
 		} elseif (count($rows) === 0) {
 			throw new \Exception('There are no migrated dam categories in sys_category. Please start to migrate DAM Cat -> sys_category first. Or, maybe there are no dam categories to migrate', 1382968775);
-		} else return $rows;
+		} else {
+			return $rows;
+		}
 	}
 
 	/**
 	 * check if a sys_category_record_mm already exists
 	 *
 	 * @param array $categoryRelation
+	 *
 	 * @return boolean
 	 */
 	protected function checkIfSysCategoryRelationExists(array $categoryRelation) {

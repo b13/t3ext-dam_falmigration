@@ -71,6 +71,8 @@ abstract class AbstractService {
 
 	/**
 	 * initializes this object
+	 *
+	 * @return void
 	 */
 	public function initializeObject() {
 		$this->database = $GLOBALS['TYPO3_DB'];
@@ -106,6 +108,28 @@ abstract class AbstractService {
 
 		$messageObject = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
 		return $messageObject;
+	}
+
+	/**
+	 * Sets the uid of the File storage record
+	 *
+	 * @return int
+	 */
+	public function getStorageUid() {
+		return $this->storageUid;
+	}
+
+	/**
+	 * Gets the uid of the File storage record
+	 *
+	 * @param int $storageUid
+	 *
+	 * @return $this to allow for chaining
+	 */
+	public function setStorageUid($storageUid) {
+		$this->storageUid = $storageUid;
+
+		return $this;
 	}
 
 }
