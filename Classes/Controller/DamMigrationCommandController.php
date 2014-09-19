@@ -70,56 +70,16 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	}
 
 	/**
-	 * migrates DAM metadata to FAL metadata searches for all sys_file records that don't have any titles yet with a connection to a _dammigration record
+	 * Migrates DAM metadata to FAL metadata. Searches for all migrated sys_file records that don't have any titles yet.
 	 *
 	 * @return void
 	 */
 	public function migrateDamMetadataCommand() {
 		$this->headerMessage(LocalizationUtility::translate('migrateDamMetadataCommand', 'dam_falmigration'));
-		$recordsToMigrate = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
-			'DISTINCT m.uid AS metadata_uid, f._migrateddamuid AS damuid, d.*',
-			'sys_file f, sys_file_metadata m, tx_dam d',
-			'm.file=f.uid AND f._migrateddamuid=d.uid AND f._migrateddamuid > 0 AND m.title IS NULL'
-		);
-
-		$this->infoMessage('Found ' . count($recordsToMigrate) . ' sys_file_metadata records that have no title but associated with a DAM record that has a title');
-
-		$migratedRecords = 0;
-		$hasAdvancedMetadata = \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::isLoaded('filemetadata');
-		foreach ($recordsToMigrate as $rec) {
-			$metaData = array(
-				'title' => $rec['title'],
-				'description' => (string)$rec['description'],
-				'alternative' => $rec['alt_text']
-			);
-			if ($hasAdvancedMetadata) {
-				$metaData['visible'] = $rec['hidden'];
-				$metaData['keywords'] = $rec['keywords'];
-				$metaData['caption'] = $rec['caption'];
-				$metaData['publisher'] = $rec['publisher'];
-				$metaData['location_country'] = $rec['loc_country'];
-				$metaData['location_city'] = $rec['loc_city'];
-				$metaData['download_name'] = $rec['file_dl_name'];
-				$metaData['creator'] = $rec['creator'];
-				$metaData['fe_groups'] = $rec['fe_group'];
-				$metaData['content_creation_date'] = $rec['date_cr'];
-				$metaData['content_modification_date'] = $rec['date_mod'];
-				$metaData['note'] = $rec['instructions'];
-				$metaData['unit'] = $rec['height_unit'];
-				$metaData['color_space'] = $rec['color_space'];
-				$metaData['language'] = $rec['language'];
-			}
-			$GLOBALS['TYPO3_DB']->exec_UPDATEquery(
-				'sys_file_metadata',
-				'uid = ' . intval($rec['metadata_uid']),
-				$metaData
-			);
-			$migratedRecords++;
-		}
-
-		$this->successMessage('Migrated title, description and alt_text for ' . $migratedRecords . ' records');
+		/** @var Service\MigrateMetadataService $service */
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateMetadataService');
+		$this->outputMessage($service->execute($this));
 	}
-
 
 	/**
 	 * Migrates the <media DAM_UID target title>Linktext</media> to <link file:29643 - download>Linktext</link>
