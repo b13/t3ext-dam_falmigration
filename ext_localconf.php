@@ -11,12 +11,6 @@ if (TYPO3_MODE == 'BE') {
 		'description'      => 'Migrates all available DAM records from fileadmin/ to the local storage of the FAL records.',
 	);
 
-	$TYPO3_CONF_VARS['SC_OPTIONS']['scheduler']['tasks']['TYPO3\\CMS\\DamFalmigration\\Task\\MigrateRelationsTask'] = array(
-		'extension'        => $_EXTKEY,
-		'title'            => 'DAM-FAL Migration: Migrate DAM Relations to FAL Relations',
-		'description'      => 'Migrates all available DAM relations from tt_content textpic/image/uploads to FAL relations.',
-	);
-
 	$TYPO3_CONF_VARS['SC_OPTIONS']['scheduler']['tasks']['TYPO3\\CMS\\DamFalmigration\\Task\\MigrateTtContentImagecaptionTask'] = array(
 		'extension'        => $_EXTKEY,
 		'title'            => 'DAM-FAL Migration: Migrate imagecaption in tt_content',
