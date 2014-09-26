@@ -29,13 +29,18 @@
 			</trans-unit>
 			<trans-unit id="cleanupDuplicateFalCollectionReferencesCommand" xml:space="preserve">
 				<source>Cleaning up duplicate FAL collection references</source>
-			</trans-unit><trans-unit id="updateReferenceIndexCommand" xml:space="preserve">
+			</trans-unit>
+			<trans-unit id="updateReferenceIndexCommand" xml:space="preserve">
 				<source>Updating reference index</source>
-			</trans-unit><trans-unit id="migrateRelationsCommand" xml:space="preserve">
+			</trans-unit>
+			<trans-unit id="migrateRelationsCommand" xml:space="preserve">
 				<source>Migrating relations to dam records</source>
 			</trans-unit>
 			<trans-unit id="migrateDamCategoryMountsToSysCategoryPerms" xml:space="preserve">
 				<source>Migrating DAM category mounts to FAL category permissions for table %s</source>
+			</trans-unit>
+			<trans-unit id="migrateDamTtnewsCommand" xml:space="preserve">
+				<source>Migrating dam_ttnews enriched tt_news records</source>
 			</trans-unit>
 			<trans-unit id="creatingCategory" xml:space="preserve">
 				<source>Creating category: %s</source>

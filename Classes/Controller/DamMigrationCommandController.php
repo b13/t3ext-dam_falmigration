@@ -421,6 +421,20 @@ class DamMigrationCommandController extends \TYPO3\CMS\Extbase\Mvc\Controller\Co
 	}
 
 	/**
+	 * Migrates tt_news records enriched with DAM fields to FAL.
+	 *
+	 * It is highly recommended to update the ref index afterwards
+	 *
+	 * @return void
+	 */
+	public function migrateDamTtnewsCommand() {
+		$this->headerMessage(LocalizationUtility::translate('migrateDamTtnewsCommand', 'dam_falmigration'));
+		/** @var Service\MigrateDamTtnewsService $migrateSelectionsService */
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateDamTtnewsService');
+		$this->outputMessage($service->execute($this));
+	}
+
+	/**
 	 * Migrate tt_news_categorymounts to category_pems in either be_groups or be_users
 	 *
 	 * @param string $table either be_groups or be_users

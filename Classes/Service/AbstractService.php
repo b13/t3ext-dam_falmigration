@@ -93,6 +93,17 @@ abstract class AbstractService {
 	}
 
 	/**
+	 * create file identifier from dam record
+	 *
+	 * @param array $damRecord
+	 *
+	 * @return string
+	 */
+	protected function getFileIdentifier(array $damRecord) {
+		return $damRecord['file_path'] . $damRecord['file_name'];
+	}
+
+	/**
 	 * add flashmessage if migration was successful or not.
 	 *
 	 * @return FlashMessage
