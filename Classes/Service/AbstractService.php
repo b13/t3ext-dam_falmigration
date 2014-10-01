@@ -16,8 +16,9 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *
  *  The GNU General Public License can be found at
  *  http://www.gnu.org/copyleft/gpl.html.
- *  A copy is found in the textfile GPL.txt and important notices to the license
- *  from the author is found in LICENSE.txt distributed with these scripts.
+ *  A copy is found in the textfile GPL.txt and important notices to the
+ * license from the author is found in LICENSE.txt distributed with these
+ * scripts.
  *
  *  This script is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -26,8 +27,8 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+use B13\DamFalmigration\Controller\DamMigrationCommandController;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
-use TYPO3\CMS\Core\Messaging\FlashMessageQueue;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
@@ -42,6 +43,11 @@ abstract class AbstractService {
 	 * @var \TYPO3\CMS\Extbase\Object\ObjectManager
 	 */
 	protected $objectManager;
+
+	/**
+	 * @var DamMigrationCommandController $parent Used to log output to console
+	 */
+	protected $parent;
 
 	/**
 	 * @var \TYPO3\CMS\Core\Database\DatabaseConnection
@@ -82,14 +88,28 @@ abstract class AbstractService {
 
 	/**
 	 * check if given table exists in current database
-	 * we can't check TCA or for installed extensions because dam and dam_ttcontent are not available for TYPO3 6.2
+	 * we can't check TCA or for installed extensions because dam and
+	 * dam_ttcontent are not available for TYPO3 6.2
 	 *
 	 * @param $table
+	 *
 	 * @return bool
 	 */
 	protected function isTableAvailable($table) {
 		$tables = $this->database->admin_get_tables();
+
 		return array_key_exists($table, $tables);
+	}
+
+	/**
+	 * create file identifier from dam record
+	 *
+	 * @param array $damRecord
+	 *
+	 * @return string
+	 */
+	protected function getFileIdentifier(array $damRecord) {
+		return $damRecord['file_path'] . $damRecord['file_name'];
 	}
 
 	/**
@@ -107,6 +127,7 @@ abstract class AbstractService {
 		}
 
 		$messageObject = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
+
 		return $messageObject;
 	}
 
@@ -132,4 +153,14 @@ abstract class AbstractService {
 		return $this;
 	}
 
+	/**
+	 * @param DamMigrationCommandController $parent
+	 *
+	 * @return $this to allow for chaining
+	 */
+	public function setParent($parent) {
+		$this->parent = $parent;
+
+		return $this;
+	}
 }

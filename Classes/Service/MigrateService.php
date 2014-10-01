@@ -118,7 +118,6 @@ class MigrateService extends AbstractService {
 				}
 			}
 
-
 			$parent->message(
 				'Not migrated dam records at start of task: ' . count($rows) . '. Migrated files after task: ' . $this->amountOfMigratedRecords . '. Files not found: ' . $this->amountOfFilesNotFound . '.'
 			);
@@ -180,17 +179,6 @@ class MigrateService extends AbstractService {
 		} else {
 			return $rows;
 		}
-	}
-
-	/**
-	 * create file identifier from dam record
-	 *
-	 * @param array $damRecord
-	 *
-	 * @return string
-	 */
-	protected function getFileIdentifier(array $damRecord) {
-		return $damRecord['file_path'] . $damRecord['file_name'];
 	}
 
 	/**
