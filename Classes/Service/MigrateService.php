@@ -97,7 +97,7 @@ class MigrateService extends AbstractService {
 
 			$counter = 0;
 			$total = count($rows);
-			$parent->infoMessage('Found ' . $total . ' DAM records without a connection tp a sys_file entry');
+			$parent->infoMessage('Found ' . $total . ' DAM records without a connection to a sys_file entry');
 
 			foreach ($rows as $row) {
 				$counter++;
@@ -105,13 +105,14 @@ class MigrateService extends AbstractService {
 				if ($this->isValidDirectory($damRecord)) {
 					try {
 						$fullFileName = $this->getFullFileName($damRecord);
-						$parent->message($counter . ' of ' . $total . ' id: ' . $damRecord['uid'] . ': ' . $fullFileName);
+
 						$fileObject = $this->storageObject->getFile($fullFileName);
 						if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
 							if ($fileObject->isMissing()) {
 								$parent->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $damRecord['uid'] . ': "' . $fullFileName . '"');
 								continue;
 							}
+							$parent->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total . ' id: ' . $damRecord['uid'] . ': ' . $fullFileName);
 							$this->migrateFileFromDamToFal($damRecord, $fileObject);
 							$this->amountOfMigratedRecords++;
 						}
@@ -135,8 +136,7 @@ class MigrateService extends AbstractService {
 	}
 
 	/**
-	 * checks if file identifier is in a valid directory
-	 * For now we check only for fileadmin directory
+	 * Checks if file identifier is in a valid directory
 	 *
 	 * @param array $damRecord
 	 *
@@ -194,7 +194,7 @@ class MigrateService extends AbstractService {
 	 * @return mixed
 	 */
 	protected function getFullFileName($damRecord) {
-		return str_replace('fileadmin', '', $this->getFileIdentifier($damRecord));
+		return str_replace($this->storageBasePath, '', $this->getFileIdentifier($damRecord));
 	}
 
 	/**
