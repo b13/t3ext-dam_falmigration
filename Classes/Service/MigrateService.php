@@ -93,18 +93,23 @@ class MigrateService extends AbstractService {
 	public function execute($parent) {
 		if ($this->isTableAvailable('tx_dam')) {
 
-			$rows = $this->getNotMigratedDamRecords();
+			$rows = $this->getNotMigratedDamRecordIds();
 
-			$parent->infoMessage('Found ' . count($rows) . ' DAM records with no connected sys_file entry');
+			$counter = 0;
+			$total = count($rows);
+			$parent->infoMessage('Found ' . $total . ' DAM records without a connection tp a sys_file entry');
 
-			foreach ($rows as $damRecord) {
+			foreach ($rows as $row) {
+				$counter++;
+				$damRecord = $this->getDamRecordById($row['uid']);
 				if ($this->isValidDirectory($damRecord)) {
 					try {
 						$fullFileName = $this->getFullFileName($damRecord);
+						$parent->message($counter . ' of ' . $total . ' id: ' . $damRecord['uid'] . ': ' . $fullFileName);
 						$fileObject = $this->storageObject->getFile($fullFileName);
 						if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
 							if ($fileObject->isMissing()) {
-								$this->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $damRecord['uid'] . ': "' . $fullFileName . '"');
+								$parent->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $damRecord['uid'] . ': "' . $fullFileName . '"');
 								continue;
 							}
 							$this->migrateFileFromDamToFal($damRecord, $fileObject);
@@ -119,7 +124,7 @@ class MigrateService extends AbstractService {
 			}
 
 			$parent->message(
-				'Not migrated dam records at start of task: ' . count($rows) . '. Migrated files after task: ' . $this->amountOfMigratedRecords . '. Files not found: ' . $this->amountOfFilesNotFound . '.'
+				'Not migrated dam records at start of task: ' . $total . '. Migrated files after task: ' . $this->amountOfMigratedRecords . '. Files not found: ' . $this->amountOfFilesNotFound . '.'
 			);
 		} else {
 			$parent->errorMessage('Extension tx_dam is not installed. So there is nothing to migrate.');
@@ -141,35 +146,13 @@ class MigrateService extends AbstractService {
 	}
 
 	/**
-	 * get a count of all dam records which have been migrated
+	 * Get all id's of dam records which have not been migrated yet
 	 *
 	 * @return array
 	 */
-	protected function countMigratedDamRecords() {
-		if ($this->database === NULL) {
-			$this->init();
-		}
-		$row = $this->database->exec_SELECTgetSingleRow(
-			'COUNT(*) as recordCount',
-			'tx_dam LEFT JOIN sys_file ON (tx_dam.uid = sys_file._migrateddamuid)',
-			'NOT sys_file.uid IS NULL AND tx_dam.deleted = 0'
-		);
-		if ($row === NULL) {
-			// SQL error appears
-			return 0;
-		} else {
-			return $row['recordCount'];
-		}
-	}
-
-	/**
-	 * get all dam records which have not been migrated yet
-	 *
-	 * @return array
-	 */
-	protected function getNotMigratedDamRecords() {
+	protected function getNotMigratedDamRecordIds() {
 		$rows = $this->database->exec_SELECTgetRows(
-			'tx_dam.*, (SELECT COUNT(*) FROM tx_dam_mm_cat WHERE tx_dam_mm_cat.uid_local = tx_dam.uid) as categories',
+			'tx_dam.uid',
 			'tx_dam LEFT JOIN sys_file ON (tx_dam.uid = sys_file._migrateddamuid)',
 			'sys_file.uid IS NULL AND tx_dam.deleted = 0'
 		);
@@ -178,6 +161,27 @@ class MigrateService extends AbstractService {
 			return array();
 		} else {
 			return $rows;
+		}
+	}
+
+	/**
+	 * Get a dam record by id
+	 *
+	 * @param integer $damRecordId
+	 *
+	 * @return array
+	 */
+	protected function getDamRecordById($damRecordId) {
+		$row = $this->database->exec_SELECTgetSingleRow(
+			'tx_dam.*',
+			'tx_dam',
+			'tx_dam.deleted = 0 AND tx_dam.uid = ' . (int)$damRecordId
+		);
+		if ($row === NULL) {
+			// SQL error appears
+			return array();
+		} else {
+			return $row;
 		}
 	}
 
