@@ -117,6 +117,7 @@ class MigrateService extends AbstractService {
 						}
 					} catch (\Exception $e) {
 						// If file is not found
+						$parent->warningMessage($e->getMessage());
 						$this->amountOfFilesNotFound++;
 						continue;
 					}

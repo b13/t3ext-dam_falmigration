@@ -39,8 +39,7 @@ class DamMigrationCommandController extends AbstractCommandController {
 	/**
 	 * Migrates all DAM records to FAL. A DB field "_migrateddamuid" connects each FAL record to the original DAM record.
 	 *
-	 * @param int|string $storageUid the UID of the storage (usually 1, don't
-	 *    modify if you are unsure)
+	 * @param int $storageUid the UID of the storage (usually 1, don't modify if you are unsure)
 	 *
 	 * @return void
 	 */
