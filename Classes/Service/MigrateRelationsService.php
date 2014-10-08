@@ -25,7 +25,9 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
+use B13\DamFalmigration\Controller\DamMigrationCommandController;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
  * Migrate DAM relations to FAL relations
@@ -44,10 +46,14 @@ class MigrateRelationsService extends AbstractService {
 	/**
 	 * main function
 	 *
+	 * @param DamMigrationCommandController $parent Used to log output to
+	 *    console
+	 *
 	 * @throws \Exception
 	 * @return FlashMessage
 	 */
-	public function execute() {
+	public function execute($parent) {
+		$parent->headerMessage(LocalizationUtility::translate('migrateRelationsCommand', 'dam_falmigration'));
 		if ($this->isTableAvailable('tx_dam_mm_ref')) {
 			$numberImportedRelationsByContentElement = array();
 			$damRelations = $this->getDamReferencesWhereSysFileExists();
@@ -109,7 +115,7 @@ class MigrateRelationsService extends AbstractService {
 									array(
 										'link' => $imageLinks[$numberImportedRelationsByContentElement[$insertData['uid_foreign']]-1],
 										'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']]-1]
-										
+
 									)
 								);
 							}

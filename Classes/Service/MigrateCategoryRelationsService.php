@@ -28,6 +28,7 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
  * Service to Migrate Categories
@@ -58,6 +59,7 @@ class MigrateCategoryRelationsService extends AbstractService {
 	 * @return FlashMessage
 	 */
 	public function execute($parent) {
+		$parent->headerMessage(LocalizationUtility::translate('migrateCategoryRelationsCommand', 'dam_falmigration'));
 		if ($this->isTableAvailable('tx_dam_mm_ref')) {
 			$categoryRelations = $this->getCategoryRelationsWhereSysCategoryExists();
 			$parent->infoMessage('Found ' . count($categoryRelations) . ' relations');

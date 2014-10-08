@@ -22,8 +22,9 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  */
-use TYPO3\CMS\Core\Messaging\FlashMessage;
 use B13\DamFalmigration\Controller\DamMigrationCommandController;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
  * Class MigrateSelectionsService
@@ -41,6 +42,7 @@ class MigrateSelectionsService extends AbstractService {
 	 * @return FlashMessage
 	 */
 	public function execute($parent) {
+		$parent->headerMessage(LocalizationUtility::translate('migrateSelectionsCommand', 'dam_falmigration'));
 
 		$damSelections = $this->getNotMigratedDamSelections();
 
