@@ -44,10 +44,11 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 * @return void
 	 */
 	public function migrateDamRecordsCommand($storageUid = 1) {
-		$this->headerMessage(LocalizationUtility::translate('connectDamRecordsWithSysFileCommand', 'dam_falmigration'));
 		/** @var Service\MigrateService $service */
 		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateService');
 		$service->setStorageUid((int)$storageUid);
+		// Service needs re-initialization after a change in storageUid
+		$service->initializeObject();
 		$this->outputMessage($service->execute($this));
 	}
 
@@ -57,7 +58,6 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 * @return void
 	 */
 	public function migrateDamMetadataCommand() {
-		$this->headerMessage(LocalizationUtility::translate('migrateDamMetadataCommand', 'dam_falmigration'));
 		/** @var Service\MigrateMetadataService $service */
 		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateMetadataService');
 		$this->outputMessage($service->execute($this));
@@ -66,13 +66,12 @@ class DamMigrationCommandController extends AbstractCommandController {
 	/**
 	 * Migrates the <media DAM_UID target title>Linktext</media> to <link file:29643 - download>Linktext</link>
 	 *
-	 * @param \string $table the table to look for
-	 * @param \string $field the DB field to look for
+	 * @param string $table the table to look for
+	 * @param string $field the DB field to look for
 	 *
 	 * @return void
 	 */
 	public function migrateMediaTagsInRteCommand($table = 'tt_content', $field = 'bodytext') {
-		$this->headerMessage(LocalizationUtility::translate('migrateMediaTagsInRteCommand', 'dam_falmigration'));
 		/** @var Service\MigrateRteMediaTagService $service */
 		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRteMediaTagService');
 		$this->outputMessage($service->execute($this, $table, $field));
@@ -257,7 +256,6 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 * @return void
 	 */
 	public function migrateCategoryRelationsCommand() {
-		$this->headerMessage(LocalizationUtility::translate('migrateCategoryRelationsCommand', 'dam_falmigration'));
 		/** @var Service\MigrateCategoryRelationsService $migrateRelationsService */
 		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateCategoryRelationsService');
 		$this->outputMessage($service->execute($this));
@@ -382,7 +380,6 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 * @return void
 	 */
 	public function migrateRelationsCommand() {
-		$this->headerMessage(LocalizationUtility::translate('migrateRelationsCommand', 'dam_falmigration'));
 		/** @var Service\MigrateRelationsService $migrateRelationsService */
 		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRelationsService');
 		$this->outputMessage($service->execute($this));
@@ -396,7 +393,6 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 * @return void
 	 */
 	public function migrateSelectionsCommand() {
-		$this->headerMessage(LocalizationUtility::translate('migrateSelectionsCommand', 'dam_falmigration'));
 		/** @var Service\MigrateSelectionsService $migrateSelectionsService */
 		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateSelectionsService');
 		$this->outputMessage($service->execute($this));
@@ -410,7 +406,6 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 * @return void
 	 */
 	public function migrateDamTtnewsCommand() {
-		$this->headerMessage(LocalizationUtility::translate('migrateDamTtnewsCommand', 'dam_falmigration'));
 		/** @var Service\MigrateDamTtnewsService $migrateSelectionsService */
 		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateDamTtnewsService');
 		$this->outputMessage($service->execute($this));

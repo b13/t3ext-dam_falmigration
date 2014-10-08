@@ -24,9 +24,10 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  */
 
 
+use B13\DamFalmigration\Controller\DamMigrationCommandController;
 use TYPO3\CMS\Core\Database\PreparedStatement;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
-use B13\DamFalmigration\Controller\DamMigrationCommandController;
+use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
  * Migrate DAM Media Tags in RTE to <link /> elements
@@ -52,6 +53,7 @@ class MigrateRteMediaTagService extends AbstractService {
 	 * @return FlashMessage
 	 */
 	public function execute($parent, $table, $field) {
+		$parent->headerMessage(LocalizationUtility::translate('migrateMediaTagsInRteCommand', 'dam_falmigration'));
 		$table = preg_replace('/[^a-zA-Z0-9_-]/', '', $table);
 		$field = preg_replace('/[^a-zA-Z0-9_-]/', '', $field);
 
