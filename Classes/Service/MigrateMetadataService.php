@@ -128,14 +128,15 @@ class MigrateMetadataService extends AbstractService {
 		$parent->headerMessage(LocalizationUtility::translate('migrateDamMetadataCommand', 'dam_falmigration'));
 		if ($this->isTableAvailable('tx_dam')) {
 
-			$rows = $this->getSysFileRecords();
+			$res = $this->execSelectMigratedSysFilesQuery();
+			$total = $this->database->sql_num_rows($res);
 
-			$parent->infoMessage('Found ' . count($rows) . ' migrated sys_file records without a title');
+			$parent->infoMessage('Found ' . $total . ' migrated sys_file records');
 
 			$this->isInstalledFileMetadata = ExtensionManagementUtility::isLoaded('filemetadata');
 			$this->isInstalledMedia = ExtensionManagementUtility::isLoaded('media');
 
-			foreach ($rows as $record) {
+			while ($record = $this->database->sql_fetch_assoc($res)) {
 				$this->database->exec_UPDATEquery(
 					'sys_file_metadata',
 					'uid = ' . $record['metadata_uid'],
@@ -160,20 +161,14 @@ class MigrateMetadataService extends AbstractService {
 	/**
 	 * Get all migrated sys_file records without a title
 	 *
-	 * @return array
+	 * @return \mysqli_result
 	 */
-	protected function getSysFileRecords() {
-		$rows = $this->database->exec_SELECTgetRows(
+	protected function execSelectMigratedSysFilesQuery() {
+		return $this->database->exec_SELECTquery(
 			'DISTINCT m.uid AS metadata_uid, f.uid as file_uid, f._migrateddamuid AS dam_uid, d.*',
 			'sys_file f, sys_file_metadata m, tx_dam d',
-			'm.file=f.uid AND f._migrateddamuid=d.uid AND f._migrateddamuid > 0 AND m.title IS NULL'
+			'm.file=f.uid AND f._migrateddamuid=d.uid AND f._migrateddamuid > 0'
 		);
-		if ($rows === NULL) {
-			// SQL error appears
-			return array();
-		} else {
-			return $rows;
-		}
 	}
 
 	/**
