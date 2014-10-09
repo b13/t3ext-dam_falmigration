@@ -93,15 +93,14 @@ class MigrateService extends AbstractService {
 	public function execute($parent) {
 		if ($this->isTableAvailable('tx_dam')) {
 
-			$rows = $this->getNotMigratedDamRecordIds();
+			$res = $this->execSelectNotMigratedDamRecordsQuery();
 
 			$counter = 0;
-			$total = count($rows);
-			$parent->infoMessage('Found ' . $total . ' DAM records without a connection tp a sys_file entry');
+			$total = $this->database->sql_num_rows($res);
+			$parent->infoMessage('Found ' . $total . ' DAM records without a connection to a sys_file entry');
 
-			foreach ($rows as $row) {
+			while ($damRecord = $this->database->sql_fetch_assoc($res)) {
 				$counter++;
-				$damRecord = $this->getDamRecordById($row['uid']);
 				if ($this->isValidDirectory($damRecord)) {
 					try {
 						$fullFileName = $this->getFullFileName($damRecord);
@@ -147,43 +146,16 @@ class MigrateService extends AbstractService {
 	}
 
 	/**
-	 * Get all id's of dam records which have not been migrated yet
+	 * Select the dam records which have not been migrated yet
 	 *
-	 * @return array
+	 * @return \mysqli_result
 	 */
-	protected function getNotMigratedDamRecordIds() {
-		$rows = $this->database->exec_SELECTgetRows(
-			'tx_dam.uid',
+	protected function execSelectNotMigratedDamRecordsQuery() {
+		return $this->database->exec_SELECTquery(
+			'tx_dam.*',
 			'tx_dam LEFT JOIN sys_file ON (tx_dam.uid = sys_file._migrateddamuid)',
 			'sys_file.uid IS NULL AND tx_dam.deleted = 0'
 		);
-		if ($rows === NULL) {
-			// SQL error appears
-			return array();
-		} else {
-			return $rows;
-		}
-	}
-
-	/**
-	 * Get a dam record by id
-	 *
-	 * @param integer $damRecordId
-	 *
-	 * @return array
-	 */
-	protected function getDamRecordById($damRecordId) {
-		$row = $this->database->exec_SELECTgetSingleRow(
-			'tx_dam.*',
-			'tx_dam',
-			'tx_dam.deleted = 0 AND tx_dam.uid = ' . (int)$damRecordId
-		);
-		if ($row === NULL) {
-			// SQL error appears
-			return array();
-		} else {
-			return $row;
-		}
 	}
 
 	/**
