@@ -44,8 +44,8 @@ class MigrateDamTtnewsService extends AbstractService {
 	 * @return FlashMessage
 	 */
 	public function execute($parent) {
-		$this->parent = $parent;
-		$parent->headerMessage(LocalizationUtility::translate('migrateDamTtnewsCommand', 'dam_falmigration'));
+		$this->setParent($parent);
+		$this->parent->headerMessage(LocalizationUtility::translate('migrateDamTtnewsCommand', 'dam_falmigration'));
 		if ($this->isTableAvailable('tx_dam_mm_ref')) {
 			$articlesWithImagesResult = $this->getRecordsWithDamConnections('tt_news', 'tx_damnews_dam_images');
 			$this->migrateRecords($articlesWithImagesResult, 'image');
@@ -53,7 +53,7 @@ class MigrateDamTtnewsService extends AbstractService {
 			$articlesWithImagesResult = $this->getRecordsWithDamConnections('tt_news', 'tx_damnews_dam_media');
 			$this->migrateRecords($articlesWithImagesResult, 'media');
 		} else {
-			$parent->errorMessage('Table tx_dam_mm_ref not found. So there is nothing to migrate.');
+			$this->parent->errorMessage('Table tx_dam_mm_ref not found. So there is nothing to migrate.');
 		}
 
 		return $this->getResultMessage();

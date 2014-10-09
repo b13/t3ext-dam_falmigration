@@ -92,14 +92,15 @@ class MigrateService extends AbstractService {
 	 * @return FlashMessage
 	 */
 	public function execute($parent) {
-		$parent->headerMessage(LocalizationUtility::translate('connectDamRecordsWithSysFileCommand', 'dam_falmigration', array($this->storageObject->getName())));
+		$this->setParent($parent);
+		$this->parent->headerMessage(LocalizationUtility::translate('connectDamRecordsWithSysFileCommand', 'dam_falmigration', array($this->storageObject->getName())));
 		if ($this->isTableAvailable('tx_dam')) {
 
 			$res = $this->execSelectNotMigratedDamRecordsQuery();
 
 			$counter = 0;
 			$total = $this->database->sql_num_rows($res);
-			$parent->infoMessage('Found ' . $total . ' DAM records without a connection to a sys_file entry');
+			$this->parent->infoMessage('Found ' . $total . ' DAM records without a connection to a sys_file entry');
 
 			while ($damRecord = $this->database->sql_fetch_assoc($res)) {
 				$counter++;
@@ -110,16 +111,16 @@ class MigrateService extends AbstractService {
 						$fileObject = $this->storageObject->getFile($fullFileName);
 						if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
 							if ($fileObject->isMissing()) {
-								$parent->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $damRecord['uid'] . ': "' . $fullFileName . '"');
+								$this->parent->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $damRecord['uid'] . ': "' . $fullFileName . '"');
 								continue;
 							}
-							$parent->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total . ' id: ' . $damRecord['uid'] . ': ' . $fullFileName);
+							$this->parent->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total . ' id: ' . $damRecord['uid'] . ': ' . $fullFileName);
 							$this->migrateFileFromDamToFal($damRecord, $fileObject);
 							$this->amountOfMigratedRecords++;
 						}
 					} catch (\Exception $e) {
 						// If file is not found
-						$parent->warningMessage($e->getMessage());
+						$this->parent->warningMessage($e->getMessage());
 						$this->amountOfFilesNotFound++;
 						continue;
 					}
@@ -127,11 +128,11 @@ class MigrateService extends AbstractService {
 			}
 			$this->database->sql_free_result($res);
 
-			$parent->message(
+			$this->parent->message(
 				'Not migrated dam records at start of task: ' . $total . '. Migrated files after task: ' . $this->amountOfMigratedRecords . '. Files not found: ' . $this->amountOfFilesNotFound . '.'
 			);
 		} else {
-			$parent->errorMessage('Extension tx_dam is not installed. So there is nothing to migrate.');
+			$this->parent->errorMessage('Extension tx_dam is not installed. So there is nothing to migrate.');
 		}
 
 		return $this->getResultMessage();

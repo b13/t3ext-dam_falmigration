@@ -42,11 +42,12 @@ class MigrateSelectionsService extends AbstractService {
 	 * @return FlashMessage
 	 */
 	public function execute($parent) {
-		$parent->headerMessage(LocalizationUtility::translate('migrateSelectionsCommand', 'dam_falmigration'));
+		$this->setParent($parent);
+		$this->parent->headerMessage(LocalizationUtility::translate('migrateSelectionsCommand', 'dam_falmigration'));
 
 		$damSelections = $this->getNotMigratedDamSelections();
 
-		$parent->infoMessage('Found ' . count($damSelections) . ' selections');
+		$this->parent->infoMessage('Found ' . count($damSelections) . ' selections');
 
 		// search for txdamFolder and create new folder based sys_file_collection
 		foreach ($damSelections as $damSelection) {
@@ -71,11 +72,11 @@ class MigrateSelectionsService extends AbstractService {
 				);
 				$this->database->exec_INSERTquery('sys_file_collection', $sysFileCollection);
 
-				$parent->message('Migrating selection ' . $damSelection['uid']);
+				$this->parent->message('Migrating selection ' . $damSelection['uid']);
 
 				$this->amountOfMigratedRecords++;
 			} else {
-				$parent->warningMessage('Empty selection found');
+				$this->parent->warningMessage('Empty selection found');
 			}
 		}
 

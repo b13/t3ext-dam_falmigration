@@ -144,14 +144,15 @@ abstract class AbstractService {
 	 * Migrate dam references to fal references
 	 *
 	 * @param \mysqli_result $result
+	 * @param string $table
 	 * @param string $type
 	 *
 	 * @return void
 	 */
-	protected function migrateDamReferencesToFalReferences($result, $type) {
+	protected function migrateDamReferencesToFalReferences($result, $table, $type) {
 		$counter = 0;
 		$total = $this->database->sql_num_rows($result);
-		$this->parent->infoMessage('Found ' . $total . ' records with a dam ' . $type);
+		$this->parent->infoMessage('Found ' . $total . ' ' . $table . ' records with a dam ' . $type);
 		while ($record = $this->database->sql_fetch_assoc($result)) {
 			$identifier = str_replace('fileadmin', '', $this->getFileIdentifier($record));
 
@@ -205,7 +206,7 @@ abstract class AbstractService {
 						$insertData
 					);
 					$this->amountOfMigratedRecords++;
-					$this->parent->message($progress . ' Migrating relation for ' . (string)$record['ident'] . ' uid: ' . $record['item_uid'] . ' dam uid: ' . $record['dam_uid'] . ' to fal uid: ' . $record['uid_local']);
+					$this->parent->message($progress . ' Migrating relation for ' . (string)$record['tablenames'] . ' uid: ' . $record['item_uid'] . ' dam uid: ' . $record['dam_uid'] . ' to fal uid: ' . $record['uid_local']);
 				} else {
 					$this->parent->message($progress . ' Reference already exists.');
 				}
