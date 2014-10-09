@@ -146,10 +146,12 @@ abstract class AbstractService {
 	 * @param \mysqli_result $result
 	 * @param string $table
 	 * @param string $type
+	 * @param array $fieldnameMapping Re-map fieldnames e.g.
+	 *    tx_damnews_dam_images => tx_falttnews_fal_images
 	 *
 	 * @return void
 	 */
-	protected function migrateDamReferencesToFalReferences($result, $table, $type) {
+	protected function migrateDamReferencesToFalReferences($result, $table, $type, $fieldnameMapping = array()) {
 		$counter = 0;
 		$total = $this->database->sql_num_rows($result);
 		$this->parent->infoMessage('Found ' . $total . ' ' . $table . ' records with a dam ' . $type);
@@ -187,20 +189,28 @@ abstract class AbstractService {
 				}
 
 				$record['uid_local'] = $fileObject->getUid();
-				$insertData = array(
-					'uid_local' => $record['uid_local'],
-					'uid_foreign' => (int)$record['uid_foreign'],
-					'sorting' => (int)$record['sorting'],
-					'sorting_foreign' => (int)$record['sorting_foreign'],
-					'tablenames' => (string)$record['tablenames'],
-					'fieldname' => (string)$record['ident'],
-					'table_local' => 'sys_file',
-					'pid' => $record['item_pid'],
-					'l10n_diffsource' => (string)$record['l18n_diffsource']
-				);
-
 				$progress = number_format(100 * ($counter++ / $total), 1) . '% of ' . $total;
 				if (!$this->doesFileReferenceExist($record)) {
+
+					if (count($fieldnameMapping)) {
+						foreach ($fieldnameMapping as $old => $new) {
+							if ($record['ident'] === $old) {
+								$record['ident'] = $new;
+							}
+						}
+					}
+
+					$insertData = array(
+						'uid_local' => $record['uid_local'],
+						'uid_foreign' => (int)$record['uid_foreign'],
+						'sorting' => (int)$record['sorting'],
+						'sorting_foreign' => (int)$record['sorting_foreign'],
+						'tablenames' => (string)$record['tablenames'],
+						'fieldname' => (string)$record['ident'],
+						'table_local' => 'sys_file',
+						'pid' => $record['item_pid'],
+						'l10n_diffsource' => (string)$record['l18n_diffsource']
+					);
 					$this->database->exec_INSERTquery(
 						'sys_file_reference',
 						$insertData
