@@ -151,6 +151,7 @@ class MigrateMetadataService extends AbstractService {
 				$parent->message('Updating metadata of record: ' . $record['file_uid'] . ' ' . $record['file_uid']);
 				$this->amountOfMigratedRecords++;
 			}
+			$this->database->sql_free_result($res);
 		} else {
 			$parent->errorMessage('Extension tx_dam is not installed. So there is nothing to migrate.');
 		}

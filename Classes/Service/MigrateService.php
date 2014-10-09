@@ -125,6 +125,7 @@ class MigrateService extends AbstractService {
 					}
 				}
 			}
+			$this->database->sql_free_result($res);
 
 			$parent->message(
 				'Not migrated dam records at start of task: ' . $total . '. Migrated files after task: ' . $this->amountOfMigratedRecords . '. Files not found: ' . $this->amountOfFilesNotFound . '.'

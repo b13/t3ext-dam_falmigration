@@ -124,7 +124,6 @@ class MigrateRteMediaTagService extends AbstractService {
 	 * @return mixed
 	 */
 	private function getRecords($table, $field) {
-		$result = array();
 		$rows = $this->database->exec_SELECTgetRows(
 			'uid, ' . $field,
 			$table,

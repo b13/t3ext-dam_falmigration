@@ -109,6 +109,131 @@ abstract class AbstractService {
 	}
 
 	/**
+	 * Fetches all $tablename records with DAM connections
+	 * Returns the item uid and pid as item_uid and item_pid
+	 *
+	 * @param string $tableName
+	 * @param string $ident
+	 *
+	 * @return \mysqli_result
+	 */
+	protected function getRecordsWithDamConnections($tableName, $ident) {
+		return $this->database->exec_SELECTquery(
+			'i.uid as item_uid,
+			 i.pid as item_pid,
+			 r.uid_local,
+			 r.uid_foreign,
+			 r.tablenames,
+			 r.sorting,
+			 r.ident,
+			 d.uid as dam_uid,
+			 d.file_name,
+			 d.file_path,
+			 d.l18n_diffsource',
+			'tx_dam_mm_ref as r
+				INNER JOIN ' . $tableName . ' as i ON r.uid_foreign = i.uid
+				INNER JOIN tx_dam as d ON d.uid = r.uid_local',
+			'r.tablenames = "' . $tableName . '"
+			 AND r.ident = "' . $ident . '"
+			 AND d.deleted = 0
+			 AND i.deleted = 0'
+		);
+	}
+
+	/**
+	 * Migrate dam references to fal references
+	 *
+	 * @param \mysqli_result $result
+	 * @param string $type
+	 *
+	 * @return void
+	 */
+	protected function migrateDamReferencesToFalReferences($result, $type) {
+		$counter = 0;
+		$total = $this->database->sql_num_rows($result);
+		$this->parent->infoMessage('Found ' . $total . ' records with a dam ' . $type);
+		while ($record = $this->database->sql_fetch_assoc($result)) {
+			$identifier = str_replace('fileadmin', '', $this->getFileIdentifier($record));
+
+			try {
+				$fileObject = $this->storageObject->getFile($identifier);
+			} catch (\Exception $e) {
+				// If file is not found
+				// getFile will throw an invalidArgumentException if the file
+				// does not exist. Create an empty file to avoid this. This is
+				// usefull in a development environment that has the production
+				// database but not all the physical files.
+				try {
+					GeneralUtility::mkdir_deep(PATH_site . 'fileadmin/', str_replace('fileadmin/', '', $record['file_path']));
+				} catch (\Exception $e) {
+					$this->parent->errorMessage('Unable to create directory: ' . PATH_site . 'fileadmin/', str_replace('fileadmin/', '', $record['file_path']));
+					continue;
+				}
+				$this->parent->infoMessage('Creating empty missing file: ' . PATH_site . $this->getFileIdentifier($record));
+
+				try {
+					GeneralUtility::writeFile(PATH_site . $this->getFileIdentifier($record), '');
+				} catch (\Exception $e) {
+					$this->parent->errorMessage('Unable to create file: ' . PATH_site . $this->getFileIdentifier($record), '');
+					continue;
+				}
+				$fileObject = $this->storageObject->getFile($identifier);
+			}
+			if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
+				if ($fileObject->isMissing()) {
+					$this->parent->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $record['uid'] . ': "' . $identifier . '"');
+					continue;
+				}
+
+				$record['uid_local'] = $fileObject->getUid();
+				$insertData = array(
+					'uid_local' => $record['uid_local'],
+					'uid_foreign' => (int)$record['uid_foreign'],
+					'sorting' => (int)$record['sorting'],
+					'sorting_foreign' => (int)$record['sorting_foreign'],
+					'tablenames' => (string)$record['tablenames'],
+					'fieldname' => (string)$record['ident'],
+					'table_local' => 'sys_file',
+					'pid' => $record['item_pid'],
+					'l10n_diffsource' => (string)$record['l18n_diffsource']
+				);
+
+				$progress = number_format(100 * ($counter++ / $total), 1) . '% of ' . $total;
+				if (!$this->doesFileReferenceExist($record)) {
+					$this->database->exec_INSERTquery(
+						'sys_file_reference',
+						$insertData
+					);
+					$this->amountOfMigratedRecords++;
+					$this->parent->message($progress . ' Migrating relation for ' . (string)$record['ident'] . ' uid: ' . $record['item_uid'] . ' dam uid: ' . $record['dam_uid'] . ' to fal uid: ' . $record['uid_local']);
+				} else {
+					$this->parent->message($progress . ' Reference already exists.');
+				}
+			}
+		}
+		$this->database->sql_free_result($result);
+	}
+
+	/**
+	 * check if a sys_file_reference already exists
+	 *
+	 * @param array $fileReference
+	 *
+	 * @return boolean
+	 */
+	protected function doesFileReferenceExist(array $fileReference) {
+		return (bool)$this->database->exec_SELECTcountRows(
+			'uid',
+			'sys_file_reference',
+			'uid_local = ' . $fileReference['uid_local'] .
+			' AND uid_foreign = ' . $fileReference['uid_foreign'] .
+			' AND tablenames = "' . $fileReference['tablenames'] . '"' .
+			' AND fieldname = "' . $fileReference['ident'] . '"' .
+			' AND table_local = "sys_file"'
+		);
+	}
+
+	/**
 	 * create file identifier from dam record
 	 *
 	 * @param array $damRecord
