@@ -61,6 +61,11 @@ abstract class AbstractService {
 	protected $fileRepository;
 
 	/**
+	 * @var string
+	 */
+	protected $storageBasePath;
+
+	/**
 	 * @var \TYPO3\CMS\Core\Resource\ResourceStorage
 	 */
 	protected $storageObject;
@@ -84,6 +89,8 @@ abstract class AbstractService {
 		$this->database = $GLOBALS['TYPO3_DB'];
 		$fileFactory = ResourceFactory::getInstance();
 		$this->storageObject = $fileFactory->getStorageObject($this->storageUid);
+		$storageConfiguration = $this->storageObject->getConfiguration();
+		$this->storageBasePath = $storageConfiguration['basePath'];
 	}
 
 	/**

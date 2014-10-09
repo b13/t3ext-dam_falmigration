@@ -11,7 +11,7 @@
 				<source>Migrate selections</source>
 			</trans-unit>
 			<trans-unit id="connectDamRecordsWithSysFileCommand" xml:space="preserve">
-				<source>Migrating DAM records to sys_file records</source>
+				<source>Migrating DAM records to sys_file records for storage '%s'</source>
 			</trans-unit>
 			<trans-unit id="migrateDamMetadataCommand" xml:space="preserve">
 				<source>Migrating DAM metadata</source>

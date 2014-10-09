@@ -22,9 +22,10 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  */
-use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
-use TYPO3\CMS\Core\Messaging\FlashMessage;
 use B13\DamFalmigration\Controller\DamMigrationCommandController;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
+use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
  * Migrates DAM metadata to FAL metadata. Searches for all migrated sys_file
@@ -124,6 +125,7 @@ class MigrateMetadataService extends AbstractService {
 	 * @return FlashMessage
 	 */
 	public function execute($parent) {
+		$parent->headerMessage(LocalizationUtility::translate('migrateDamMetadataCommand', 'dam_falmigration'));
 		if ($this->isTableAvailable('tx_dam')) {
 
 			$rows = $this->getSysFileRecords();

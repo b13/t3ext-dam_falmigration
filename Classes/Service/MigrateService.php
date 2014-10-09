@@ -22,10 +22,11 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  */
+use B13\DamFalmigration\Controller\DamMigrationCommandController;
+use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Core\Messaging\FlashMessage;
-use B13\DamFalmigration\Controller\DamMigrationCommandController;
+use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
  * Service to Migrate Records
@@ -91,6 +92,7 @@ class MigrateService extends AbstractService {
 	 * @return FlashMessage
 	 */
 	public function execute($parent) {
+		$parent->headerMessage(LocalizationUtility::translate('connectDamRecordsWithSysFileCommand', 'dam_falmigration', array($this->storageObject->getName())));
 		if ($this->isTableAvailable('tx_dam')) {
 
 			$res = $this->execSelectNotMigratedDamRecordsQuery();
@@ -104,13 +106,14 @@ class MigrateService extends AbstractService {
 				if ($this->isValidDirectory($damRecord)) {
 					try {
 						$fullFileName = $this->getFullFileName($damRecord);
-						$parent->message($counter . ' of ' . $total . ' id: ' . $damRecord['uid'] . ': ' . $fullFileName);
+
 						$fileObject = $this->storageObject->getFile($fullFileName);
 						if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
 							if ($fileObject->isMissing()) {
 								$parent->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $damRecord['uid'] . ': "' . $fullFileName . '"');
 								continue;
 							}
+							$parent->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total . ' id: ' . $damRecord['uid'] . ': ' . $fullFileName);
 							$this->migrateFileFromDamToFal($damRecord, $fileObject);
 							$this->amountOfMigratedRecords++;
 						}
@@ -134,8 +137,7 @@ class MigrateService extends AbstractService {
 	}
 
 	/**
-	 * checks if file identifier is in a valid directory
-	 * For now we check only for fileadmin directory
+	 * Checks if file identifier is in a valid directory
 	 *
 	 * @param array $damRecord
 	 *
@@ -166,7 +168,7 @@ class MigrateService extends AbstractService {
 	 * @return mixed
 	 */
 	protected function getFullFileName($damRecord) {
-		return str_replace('fileadmin', '', $this->getFileIdentifier($damRecord));
+		return str_replace($this->storageBasePath, '', $this->getFileIdentifier($damRecord));
 	}
 
 	/**
