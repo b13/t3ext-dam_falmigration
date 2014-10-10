@@ -189,16 +189,16 @@ abstract class AbstractService {
 				}
 
 				$record['uid_local'] = $fileObject->getUid();
-				$progress = number_format(100 * ($counter++ / $total), 1) . '% of ' . $total;
-				if (!$this->doesFileReferenceExist($record)) {
-
-					if (count($fieldnameMapping)) {
-						foreach ($fieldnameMapping as $old => $new) {
-							if ($record['ident'] === $old) {
-								$record['ident'] = $new;
-							}
+				if (count($fieldnameMapping)) {
+					foreach ($fieldnameMapping as $old => $new) {
+						if ($record['ident'] === $old) {
+							$record['ident'] = $new;
 						}
 					}
+				}
+
+				$progress = number_format(100 * ($counter++ / $total), 1) . '% of ' . $total;
+				if (!$this->doesFileReferenceExist($record)) {
 
 					$insertData = array(
 						'uid_local' => $record['uid_local'],
