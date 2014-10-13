@@ -135,6 +135,7 @@ abstract class AbstractService {
 				INNER JOIN tx_dam as d ON d.uid = r.uid_local',
 			'r.tablenames = "' . $tableName . '"
 			 AND r.ident = "' . $ident . '"
+			 AND d.file_path LIKE "' . $this->storageBasePath . '%"
 			 AND d.deleted = 0
 			 AND i.deleted = 0'
 		);

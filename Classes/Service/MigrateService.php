@@ -96,6 +96,7 @@ class MigrateService extends AbstractService {
 		$this->parent->headerMessage(LocalizationUtility::translate('connectDamRecordsWithSysFileCommand', 'dam_falmigration', array($this->storageObject->getName())));
 		if ($this->isTableAvailable('tx_dam')) {
 
+			$this->parent->warningMessage($this->storageBasePath);
 			$res = $this->execSelectNotMigratedDamRecordsQuery();
 
 			$counter = 0;
@@ -104,6 +105,9 @@ class MigrateService extends AbstractService {
 
 			while ($damRecord = $this->database->sql_fetch_assoc($res)) {
 				$counter++;
+				if ($counter > 10) {
+					break;
+				}
 				if ($this->isValidDirectory($damRecord)) {
 					try {
 						$fullFileName = $this->getFullFileName($damRecord);
@@ -158,7 +162,9 @@ class MigrateService extends AbstractService {
 		return $this->database->exec_SELECTquery(
 			'tx_dam.*',
 			'tx_dam LEFT JOIN sys_file ON (tx_dam.uid = sys_file._migrateddamuid)',
-			'sys_file.uid IS NULL AND tx_dam.deleted = 0'
+			'sys_file.uid IS NULL AND
+			 tx_dam.deleted = 0 AND
+			 tx_dam.file_path LIKE "' . $this->storageBasePath . '%"'
 		);
 	}
 
