@@ -125,13 +125,14 @@ class MigrateMetadataService extends AbstractService {
 	 * @return FlashMessage
 	 */
 	public function execute($parent) {
-		$parent->headerMessage(LocalizationUtility::translate('migrateDamMetadataCommand', 'dam_falmigration'));
+		$this->setParent($parent);
+		$this->parent->headerMessage(LocalizationUtility::translate('migrateDamMetadataCommand', 'dam_falmigration'));
 		if ($this->isTableAvailable('tx_dam')) {
 
 			$res = $this->execSelectMigratedSysFilesQuery();
 			$total = $this->database->sql_num_rows($res);
 
-			$parent->infoMessage('Found ' . $total . ' migrated sys_file records');
+			$this->parent->infoMessage('Found ' . $total . ' migrated sys_file records');
 
 			$this->isInstalledFileMetadata = ExtensionManagementUtility::isLoaded('filemetadata');
 			$this->isInstalledMedia = ExtensionManagementUtility::isLoaded('media');
@@ -148,11 +149,12 @@ class MigrateMetadataService extends AbstractService {
 					'uid = ' . $record['file_uid'],
 					$this->createArrayForUpdateSysFileRecord($record)
 				);
-				$parent->message('Updating metadata of record: ' . $record['file_uid'] . ' ' . $record['file_uid']);
+				$this->parent->message('Updating metadata of record: ' . $record['file_uid'] . ' ' . $record['file_uid']);
 				$this->amountOfMigratedRecords++;
 			}
+			$this->database->sql_free_result($res);
 		} else {
-			$parent->errorMessage('Extension tx_dam is not installed. So there is nothing to migrate.');
+			$this->parent->errorMessage('Extension tx_dam is not installed. So there is nothing to migrate.');
 		}
 
 		return $this->getResultMessage();
@@ -207,11 +209,6 @@ class MigrateMetadataService extends AbstractService {
 		$updateData = array(
 			'tstamp' => time(),
 		);
-
-		// add always available columns for filemetadata
-		foreach ($this->columnMapping as $damColName => $metaColName) {
-			$updateData[$metaColName] = $damRecord[$damColName];
-		}
 
 		// add additional columns if ext:media is installed
 		if ($this->isInstalledMedia) {

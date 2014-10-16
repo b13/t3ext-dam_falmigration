@@ -53,7 +53,8 @@ class MigrateRelationsService extends AbstractService {
 	 * @return FlashMessage
 	 */
 	public function execute($parent) {
-		$parent->headerMessage(LocalizationUtility::translate('migrateRelationsCommand', 'dam_falmigration'));
+		$this->setParent($parent);
+		$this->parent->headerMessage(LocalizationUtility::translate('migrateRelationsCommand', 'dam_falmigration'));
 		if ($this->isTableAvailable('tx_dam_mm_ref')) {
 			$numberImportedRelationsByContentElement = array();
 			$damRelations = $this->getDamReferencesWhereSysFileExists();

@@ -80,6 +80,7 @@ class AbstractCommandController extends CommandController {
 		$this->outputLine($message);
 		if ($flushOutput) {
 			$this->response->send();
+			$this->response->setContent('');
 		}
 	}
 
@@ -104,6 +105,7 @@ class AbstractCommandController extends CommandController {
 		}
 		if ($flushOutput) {
 			$this->response->send();
+			$this->response->setContent('');
 		}
 	}
 
@@ -128,6 +130,7 @@ class AbstractCommandController extends CommandController {
 		}
 		if ($flushOutput) {
 			$this->response->send();
+			$this->response->setContent('');
 		}
 	}
 
@@ -152,6 +155,7 @@ class AbstractCommandController extends CommandController {
 		}
 		if ($flushOutput) {
 			$this->response->send();
+			$this->response->setContent('');
 		}
 	}
 
@@ -176,47 +180,141 @@ class AbstractCommandController extends CommandController {
 		}
 		if ($flushOutput) {
 			$this->response->send();
+			$this->response->setContent('');
 		}
 	}
+
+	/**
+	 * Info string
+	 *
+	 * @param string $string
+	 *
+	 * @return string
+	 */
+	public function infoString($string = NULL) {
+		if (USE_COLOR) {
+			$string = "\033[0;36m" . $string . "\033[0m";
+		}
+		return $string;
+	}
+
+	/**
+	 * Error string
+	 *
+	 * @param string $string
+	 *
+	 * @return string
+	 */
+	public function errorString($string = NULL) {
+		if (USE_COLOR) {
+			$string = "\033[0;31m" . $string . "\033[0m";
+		}
+		return $string;
+	}
+
+	/**
+	 * Warning string
+	 *
+	 * @param string $string
+	 *
+	 * @return string
+	 */
+	public function warningString($string = NULL) {
+		if (USE_COLOR) {
+			$string = "\033[0;33m" . $string . "\033[0m";
+		}
+		return $string;
+	}
+
+	/**
+	 * Success string
+	 *
+	 * @param string $string
+	 *
+	 * @return string
+	 */
+	public function successString($string = NULL) {
+		if (USE_COLOR) {
+			$string = "\033[0;32m" . $string . "\033[0m";
+		}
+		return $string;
+	}
+
 
 	/**
 	 * Show a header message
 	 *
 	 * @param $message
 	 * @param string $style
+	 * @param boolean $flushOutput
 	 *
 	 * @return void
 	 */
-	public function headerMessage($message, $style = 'info') {
+	public function headerMessage($message, $style = 'info', $flushOutput = TRUE) {
 		// Crop the message
-		$message = substr($message, 0, TERMINAL_WIDTH - 3);
+		$message = substr($message, 0, TERMINAL_WIDTH );
 		if (UNICODE) {
-			$linePaddingLength = mb_strlen('─') * (TERMINAL_WIDTH - 2);
+			$linePaddingLength = mb_strlen('─') * (TERMINAL_WIDTH);
 			$message =
-				'┌' . str_pad('', $linePaddingLength, '─') . '┐' . LF .
-				'│ ' . str_pad($message, TERMINAL_WIDTH - 3) . '│' . LF .
-				'└' . str_pad('', $linePaddingLength, '─') . '┘';
+				str_pad('', $linePaddingLength, '─') . LF .
+				str_pad($message, TERMINAL_WIDTH) . LF .
+				str_pad('', $linePaddingLength, '─');
 		} else {
 			$message =
 				str_pad('', TERMINAL_WIDTH, '-') . LF .
-				'+ ' . str_pad($message, TERMINAL_WIDTH - 3) . '+' . LF .
+				str_pad($message, TERMINAL_WIDTH) . LF .
 				str_pad('', TERMINAL_WIDTH, '-');
 		}
 		switch ($style) {
 			case 'error':
-				$this->errorMessage($message, FALSE);
+				$this->errorMessage($message, FALSE, $flushOutput);
 				break;
 			case 'info':
-				$this->infoMessage($message, FALSE);
+				$this->infoMessage($message, FALSE, $flushOutput);
 				break;
 			case 'success':
-				$this->successMessage($message, FALSE);
+				$this->successMessage($message, FALSE, $flushOutput);
 				break;
 			case 'warning':
-				$this->warningMessage($message, FALSE);
+				$this->warningMessage($message, FALSE, $flushOutput);
 				break;
 			default:
-				$this->message($message);
+				$this->message($message, $flushOutput);
+		}
+	}
+
+	/**
+	 * Show a horizontal line
+	 *
+	 * @param string $style
+	 * @param boolean $flushOutput
+	 *
+	 * @return void
+	 */
+	public function horizontalLine($style = '', $flushOutput = TRUE) {
+		if (UNICODE) {
+			$linePaddingLength = mb_strlen('─') * (TERMINAL_WIDTH);
+			$message =
+				str_pad('', $linePaddingLength, '─');
+		} else {
+			$message =
+				str_pad('', TERMINAL_WIDTH, '-');
+		}
+		switch ($style) {
+			case 'error':
+				$this->errorMessage($message, FALSE, $flushOutput);
+				break;
+			case 'info':
+				$this->infoMessage($message, FALSE, $flushOutput);
+				break;
+			case 'success':
+				$this->successMessage($message, FALSE, $flushOutput);
+				break;
+			case 'warning':
+				$this->warningMessage($message, FALSE, $flushOutput);
+				break;
+			default:
+				$this->message($message, $flushOutput);
 		}
 	}
 }

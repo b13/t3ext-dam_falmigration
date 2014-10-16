@@ -53,13 +53,14 @@ class MigrateRteMediaTagService extends AbstractService {
 	 * @return FlashMessage
 	 */
 	public function execute($parent, $table, $field) {
-		$parent->headerMessage(LocalizationUtility::translate('migrateMediaTagsInRteCommand', 'dam_falmigration'));
+		$this->setParent($parent);
+		$this->parent->headerMessage(LocalizationUtility::translate('migrateMediaTagsInRteCommand', 'dam_falmigration'));
 		$table = preg_replace('/[^a-zA-Z0-9_-]/', '', $table);
 		$field = preg_replace('/[^a-zA-Z0-9_-]/', '', $field);
 
 		$records = $this->getRecords($table, $field);
 
-		$parent->infoMessage('Found ' . count($records) . ' ' . $table . ' records that have a "<media>" tag in the field ' . $field);
+		$this->parent->infoMessage('Found ' . count($records) . ' ' . $table . ' records that have a "<media>" tag in the field ' . $field);
 
 		/** @var PreparedStatement $getSysFileUidStatement */
 		$getSysFileUidStatement = $this->database->prepare_SELECTquery(
@@ -80,7 +81,7 @@ class MigrateRteMediaTagService extends AbstractService {
 					// see EXT:dam/mediatag/class.tx_dam_rtetransform_mediatag.php
 					list($linkTarget, $linkClass, $linkTitle) = explode(' ', trim($result[2]), 3);
 					$linkText = $result[3];
-					$parent->message('Replacing "' . $result[0] . '" with DAM UID ' . $damUid . ' (target ' . $linkTarget . '; class ' . $linkClass . '; title "' . $linkTitle . '") and linktext "' . $linkText . '"');
+					$this->parent->message('Replacing "' . $result[0] . '" with DAM UID ' . $damUid . ' (target ' . $linkTarget . '; class ' . $linkClass . '; title "' . $linkTitle . '") and linktext "' . $linkText . '"');
 					/**
 					 * after migration of DAM-Records we can find sys_file-UID with help of
 					 * DAM-UID fetch the DAM uid from sys_file and replace the full tag with a
@@ -93,7 +94,7 @@ class MigrateRteMediaTagService extends AbstractService {
 						$replaceString = '<link file:' . $falRecord['uid'] . ' ' . $result[2] . '>' . $linkText . '</link>';
 						$finalContent = str_replace($searchString, $replaceString, $finalContent);
 					} else {
-						$parent->warningMessage('No FAL record found for dam uid: ' . $damUid);
+						$this->parent->warningMessage('No FAL record found for dam uid: ' . $damUid);
 					}
 				}
 				// update the record
@@ -103,11 +104,11 @@ class MigrateRteMediaTagService extends AbstractService {
 						'uid=' . $rec['uid'],
 						array($field => $finalContent)
 					);
-					$parent->infoMessage('Updated ' . $table . ':' . $rec['uid'] . ' with: ' . $finalContent);
+					$this->parent->infoMessage('Updated ' . $table . ':' . $rec['uid'] . ' with: ' . $finalContent);
 					$this->amountOfMigratedRecords++;
 				}
 			} else {
-				$parent->warningMessage('Nothing found: ' . $originalContent);
+				$this->parent->warningMessage('Nothing found: ' . $originalContent);
 			}
 		}
 
@@ -124,7 +125,6 @@ class MigrateRteMediaTagService extends AbstractService {
 	 * @return mixed
 	 */
 	private function getRecords($table, $field) {
-		$result = array();
 		$rows = $this->database->exec_SELECTgetRows(
 			'uid, ' . $field,
 			$table,
