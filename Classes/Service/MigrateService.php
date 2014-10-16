@@ -96,7 +96,6 @@ class MigrateService extends AbstractService {
 		$this->parent->headerMessage(LocalizationUtility::translate('connectDamRecordsWithSysFileCommand', 'dam_falmigration', array($this->storageObject->getName())));
 		if ($this->isTableAvailable('tx_dam')) {
 
-			$this->parent->warningMessage($this->storageBasePath);
 			$res = $this->execSelectNotMigratedDamRecordsQuery();
 
 			$counter = 0;
@@ -105,9 +104,6 @@ class MigrateService extends AbstractService {
 
 			while ($damRecord = $this->database->sql_fetch_assoc($res)) {
 				$counter++;
-				if ($counter > 10) {
-					break;
-				}
 				if ($this->isValidDirectory($damRecord)) {
 					try {
 						$fullFileName = $this->getFullFileName($damRecord);
@@ -124,6 +120,7 @@ class MigrateService extends AbstractService {
 						}
 					} catch (\Exception $e) {
 						// If file is not found
+						$this->setDamFileMissingByUid($damRecord['uid']);
 						$this->parent->warningMessage($e->getMessage());
 						$this->amountOfFilesNotFound++;
 						continue;
@@ -154,6 +151,23 @@ class MigrateService extends AbstractService {
 	}
 
 	/**
+	 * Count the dam records which have not been migrated yet
+	 *
+	 * @return integer
+	 */
+	public function countNotMigratedDamRecordsQuery() {
+		$row = $this->database->exec_SELECTgetSingleRow(
+			'COUNT(*) as total',
+			'tx_dam LEFT JOIN sys_file ON (tx_dam.uid = sys_file._migrateddamuid)',
+			'sys_file.uid IS NULL AND
+			 tx_dam.deleted = 0 AND
+			 tx_dam.file_path LIKE "' . $this->storageBasePath . '%" AND
+			 tx_dam._missingfile = 0'
+		);
+		return (int)$row['total'];
+	}
+
+	/**
 	 * Select the dam records which have not been migrated yet
 	 *
 	 * @return \mysqli_result
@@ -164,19 +178,23 @@ class MigrateService extends AbstractService {
 			'tx_dam LEFT JOIN sys_file ON (tx_dam.uid = sys_file._migrateddamuid)',
 			'sys_file.uid IS NULL AND
 			 tx_dam.deleted = 0 AND
-			 tx_dam.file_path LIKE "' . $this->storageBasePath . '%"'
+			 tx_dam.file_path LIKE "' . $this->storageBasePath . '%" AND
+			 tx_dam._missingfile = 0
+			 LIMIT ' . (int)$this->getRecordLimit()
 		);
 	}
 
 	/**
-	 * remove storage name from fileIdentifier
+	 * Mark a dam file as missing
 	 *
-	 * @param $damRecord
-	 *
-	 * @return mixed
+	 * @return void
 	 */
-	protected function getFullFileName($damRecord) {
-		return str_replace($this->storageBasePath, '', $this->getFileIdentifier($damRecord));
+	protected function setDamFileMissingByUid($uid) {
+		$this->database->exec_UPDATEquery(
+			'tx_dam',
+			'uid = ' . (int)$uid,
+			array ('_missingfile' => 1)
+		);
 	}
 
 	/**
