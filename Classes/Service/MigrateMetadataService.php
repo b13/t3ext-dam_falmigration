@@ -210,11 +210,6 @@ class MigrateMetadataService extends AbstractService {
 			'tstamp' => time(),
 		);
 
-		// add always available columns for filemetadata
-		foreach ($this->columnMapping as $damColName => $metaColName) {
-			$updateData[$metaColName] = $damRecord[$damColName];
-		}
-
 		// add additional columns if ext:media is installed
 		if ($this->isInstalledMedia) {
 			foreach ($this->mediaColumnMapping as $damColName => $metaColName) {
