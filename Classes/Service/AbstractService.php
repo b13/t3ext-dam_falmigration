@@ -61,6 +61,11 @@ abstract class AbstractService {
 	protected $fileRepository;
 
 	/**
+	 * @var integer
+	 */
+	private $recordLimit = 10000;
+
+	/**
 	 * @var string
 	 */
 	protected $storageBasePath;
@@ -257,6 +262,17 @@ abstract class AbstractService {
 	}
 
 	/**
+	 * remove storage name from fileIdentifier
+	 *
+	 * @param $damRecord
+	 *
+	 * @return mixed
+	 */
+	protected function getFullFileName($damRecord) {
+		return str_replace($this->storageBasePath, '', $this->getFileIdentifier($damRecord));
+	}
+
+	/**
 	 * add flashmessage if migration was successful or not.
 	 *
 	 * @return FlashMessage
@@ -273,6 +289,24 @@ abstract class AbstractService {
 		$messageObject = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
 
 		return $messageObject;
+	}
+
+	/**
+	 * @return int
+	 */
+	public function getRecordLimit() {
+		return $this->recordLimit;
+	}
+
+	/**
+	 * @param int $recordLimit
+	 *
+	 * @return $this to allow for chaining
+	 */
+	public function setRecordLimit($recordLimit) {
+		$this->recordLimit = $recordLimit;
+
+		return $this;
 	}
 
 	/**
