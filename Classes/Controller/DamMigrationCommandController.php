@@ -40,14 +40,16 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 * Migrates all DAM records to FAL. A DB field "_migrateddamuid" connects each FAL record to the original DAM record.
 	 *
 	 * @param int $storageUid the UID of the storage (usually 1, don't modify if you are unsure)
+	 * @param int $recordLimit the amount of records to process in a single run
 	 *
 	 * @return void
 	 */
-	public function migrateDamRecordsCommand($storageUid = 1) {
+	public function migrateDamRecordsCommand($storageUid = 1, $recordLimit = 10000) {
 		/** @var Service\MigrateService $service */
 		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateService');
 		$service->setStorageUid((int)$storageUid);
-		// Service needs re-initialization after a change in storageUid
+		$service->setRecordLimit((int)$recordLimit);
+		// Service needs re-initialization after setting properties
 		$service->initializeObject();
 		$this->outputMessage($service->execute($this));
 	}
