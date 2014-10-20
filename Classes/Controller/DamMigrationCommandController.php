@@ -405,11 +405,16 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 *
 	 * It is highly recommended to update the ref index afterwards
 	 *
+	 * @param int $storageUid the UID of the storage (usually 1, don't modify if you are unsure)
+	 *
 	 * @return void
 	 */
-	public function migrateDamTtnewsCommand() {
+	public function migrateDamTtnewsCommand($storageUid = 1) {
 		/** @var Service\MigrateDamTtnewsService $migrateSelectionsService */
 		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateDamTtnewsService');
+		$service->setStorageUid((int)$storageUid);
+		// Service needs re-initialization after setting properties
+		$service->initializeObject();
 		$this->outputMessage($service->execute($this));
 	}
 

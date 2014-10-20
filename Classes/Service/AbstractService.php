@@ -162,7 +162,7 @@ abstract class AbstractService {
 		$total = $this->database->sql_num_rows($result);
 		$this->parent->infoMessage('Found ' . $total . ' ' . $table . ' records with a dam ' . $type);
 		while ($record = $this->database->sql_fetch_assoc($result)) {
-			$identifier = str_replace('fileadmin', '', $this->getFileIdentifier($record));
+			$identifier = $this->getFullFileName($record);
 
 			try {
 				$fileObject = $this->storageObject->getFile($identifier);
@@ -173,17 +173,16 @@ abstract class AbstractService {
 				// usefull in a development environment that has the production
 				// database but not all the physical files.
 				try {
-					GeneralUtility::mkdir_deep(PATH_site . 'fileadmin/', str_replace('fileadmin/', '', $record['file_path']));
+					GeneralUtility::mkdir_deep(PATH_site . $this->storageBasePath . $identifier);
 				} catch (\Exception $e) {
-					$this->parent->errorMessage('Unable to create directory: ' . PATH_site . 'fileadmin/', str_replace('fileadmin/', '', $record['file_path']));
+					$this->parent->errorMessage('Unable to create directory: ' . PATH_site . $this->storageBasePath . $identifier);
 					continue;
 				}
-				$this->parent->infoMessage('Creating empty missing file: ' . PATH_site . $this->getFileIdentifier($record));
-
+				$this->parent->infoMessage('Creating empty missing file: ' . PATH_site . $this->storageBasePath . $identifier);
 				try {
 					GeneralUtility::writeFile(PATH_site . $this->getFileIdentifier($record), '');
 				} catch (\Exception $e) {
-					$this->parent->errorMessage('Unable to create file: ' . PATH_site . $this->getFileIdentifier($record), '');
+					$this->parent->errorMessage('Unable to create file: ' . PATH_site . $this->storageBasePath . $identifier, '');
 					continue;
 				}
 				$fileObject = $this->storageObject->getFile($identifier);
