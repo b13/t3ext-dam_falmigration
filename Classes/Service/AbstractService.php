@@ -173,14 +173,14 @@ abstract class AbstractService {
 				// usefull in a development environment that has the production
 				// database but not all the physical files.
 				try {
-					GeneralUtility::mkdir_deep(PATH_site . $this->storageBasePath . $identifier);
+					GeneralUtility::mkdir_deep(PATH_site . $this->storageBasePath . dirname($identifier));
 				} catch (\Exception $e) {
 					$this->parent->errorMessage('Unable to create directory: ' . PATH_site . $this->storageBasePath . $identifier);
 					continue;
 				}
 				$this->parent->infoMessage('Creating empty missing file: ' . PATH_site . $this->storageBasePath . $identifier);
 				try {
-					GeneralUtility::writeFile(PATH_site . $this->getFileIdentifier($record), '');
+					GeneralUtility::writeFile(PATH_site . $this->storageBasePath . $identifier, '');
 				} catch (\Exception $e) {
 					$this->parent->errorMessage('Unable to create file: ' . PATH_site . $this->storageBasePath . $identifier, '');
 					continue;
