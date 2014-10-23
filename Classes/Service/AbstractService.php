@@ -63,7 +63,7 @@ abstract class AbstractService {
 	/**
 	 * @var integer
 	 */
-	private $recordLimit = 10000;
+	private $recordLimit = 999999;
 
 	/**
 	 * @var string

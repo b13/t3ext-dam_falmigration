@@ -179,8 +179,10 @@ class MigrateService extends AbstractService {
 			'sys_file.uid IS NULL AND
 			 tx_dam.deleted = 0 AND
 			 tx_dam.file_path LIKE "' . $this->storageBasePath . '%" AND
-			 tx_dam._missingfile = 0
-			 LIMIT ' . (int)$this->getRecordLimit()
+			 tx_dam._missingfile = 0',
+			'',
+			'',
+			(int)$this->getRecordLimit()
 		);
 	}
 

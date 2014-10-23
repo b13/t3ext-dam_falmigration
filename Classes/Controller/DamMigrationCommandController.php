@@ -44,7 +44,7 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 *
 	 * @return void
 	 */
-	public function migrateDamRecordsCommand($storageUid = 1, $recordLimit = 10000) {
+	public function migrateDamRecordsCommand($storageUid = 1, $recordLimit = 999999) {
 		/** @var Service\MigrateService $service */
 		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateService');
 		$service->setStorageUid((int)$storageUid);
@@ -255,11 +255,16 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 *
 	 * it is highly recommended to update the ref index afterwards
 	 *
+	 * @param int $recordLimit the amount of records to process in a single run
+	 *
 	 * @return void
 	 */
-	public function migrateCategoryRelationsCommand() {
+	public function migrateCategoryRelationsCommand($recordLimit = 999999) {
 		/** @var Service\MigrateCategoryRelationsService $migrateRelationsService */
 		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateCategoryRelationsService');
+		$service->setRecordLimit((int)$recordLimit);
+		// Service needs re-initialization after setting properties
+		$service->initializeObject();
 		$this->outputMessage($service->execute($this));
 	}
 

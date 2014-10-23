@@ -57,8 +57,13 @@ class MigrateRelationsService extends AbstractService {
 		$this->parent->headerMessage(LocalizationUtility::translate('migrateRelationsCommand', 'dam_falmigration'));
 		if ($this->isTableAvailable('tx_dam_mm_ref')) {
 			$numberImportedRelationsByContentElement = array();
-			$damRelations = $this->getDamReferencesWhereSysFileExists();
-			foreach ($damRelations as $damRelation) {
+			$damRelations = $this->execSelectDamReferencesWhereSysFileExists();
+
+			$counter = 0;
+			$total = $this->database->sql_num_rows($damRelations);
+
+			while ($damRelation = $this->database->sql_fetch_assoc($damRelations)) {
+				$counter++;
 				$pid = $this->getPidOfForeignRecord($damRelation);
 				$insertData = array(
 					'pid' => ($pid === NULL) ? 0 : $pid,
@@ -141,6 +146,7 @@ class MigrateRelationsService extends AbstractService {
 							}
 						}
 					}
+					$this->parent->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total . ' id: ' . $damRelation['uid_local'] . ' ident: ' . $damRelation['ident']);
 					$this->amountOfMigratedRecords++;
 				}
 			}
@@ -170,22 +176,17 @@ class MigrateRelationsService extends AbstractService {
 	 * After a migration of tx_dam -> sys_file the col _migrateddamuid is filled with dam uid
 	 * Now we can search in dam relations for dam records which have already been migrated to sys_file
 	 *
-	 * @throws \Exception
-	 * @return array
+	 * @return \mysqli_result
 	 */
-	protected function getDamReferencesWhereSysFileExists() {
-		$rows = $this->database->exec_SELECTgetRows(
+	protected function execSelectDamReferencesWhereSysFileExists() {
+		return $this->database->exec_SELECTquery(
 			'MM.*, SF.uid as sys_file_uid, MD.title, MD.description, MD.alternative',
 			'tx_dam_mm_ref MM, sys_file SF, sys_file_metadata MD',
 			'MD.file = SF.uid AND SF._migrateddamuid = MM.uid_local',
 			'',
-			'MM.sorting ASC'
+			'MM.sorting ASC',
+			(int)$this->getRecordLimit()
 		);
-		if ($rows === NULL) {
-			throw new \Exception('SQL-Error in getDamReferencesWhereSysFileExists()', 1382353670);
-		} elseif (count($rows) === 0) {
-			throw new \Exception('There are no migrated dam records in sys_file. Please start to migrate DAM -> sys_file first. Or, maybe there are no dam records to migrate', 1382355647);
-		} else return $rows;
 	}
 
 	/**
