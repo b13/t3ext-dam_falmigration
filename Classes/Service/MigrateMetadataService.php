@@ -22,7 +22,6 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  */
-use B13\DamFalmigration\Controller\DamMigrationCommandController;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
@@ -117,22 +116,18 @@ class MigrateMetadataService extends AbstractService {
 	/**
 	 * Main method
 	 *
-	 * @param DamMigrationCommandController $parent Used to log output to
-	 *    console
-	 *
 	 * @throws \TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException
 	 * @throws \Exception
 	 * @return FlashMessage
 	 */
-	public function execute($parent) {
-		$this->setParent($parent);
-		$this->parent->headerMessage(LocalizationUtility::translate('migrateDamMetadataCommand', 'dam_falmigration'));
+	public function execute() {
+		$this->controller->headerMessage(LocalizationUtility::translate('migrateDamMetadataCommand', 'dam_falmigration'));
 		if ($this->isTableAvailable('tx_dam')) {
 
 			$res = $this->execSelectMigratedSysFilesQuery();
 			$total = $this->database->sql_num_rows($res);
 
-			$this->parent->infoMessage('Found ' . $total . ' migrated sys_file records');
+			$this->controller->infoMessage('Found ' . $total . ' migrated sys_file records');
 
 			$this->isInstalledFileMetadata = ExtensionManagementUtility::isLoaded('filemetadata');
 			$this->isInstalledMedia = ExtensionManagementUtility::isLoaded('media');
@@ -149,12 +144,12 @@ class MigrateMetadataService extends AbstractService {
 					'uid = ' . $record['file_uid'],
 					$this->createArrayForUpdateSysFileRecord($record)
 				);
-				$this->parent->message('Updating metadata of record: ' . $record['file_uid'] . ' ' . $record['file_uid']);
+				$this->controller->message('Updating metadata of record: ' . $record['file_uid'] . ' ' . $record['file_uid']);
 				$this->amountOfMigratedRecords++;
 			}
 			$this->database->sql_free_result($res);
 		} else {
-			$this->parent->errorMessage('Extension tx_dam is not installed. So there is nothing to migrate.');
+			$this->controller->errorMessage('Extension tx_dam is not installed. So there is nothing to migrate.');
 		}
 
 		return $this->getResultMessage();

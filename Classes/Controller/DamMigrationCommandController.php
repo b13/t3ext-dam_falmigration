@@ -46,12 +46,12 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 */
 	public function migrateDamRecordsCommand($storageUid = 1, $recordLimit = 999999) {
 		/** @var Service\MigrateService $service */
-		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateService');
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateService', $this);
 		$service->setStorageUid((int)$storageUid);
 		$service->setRecordLimit((int)$recordLimit);
 		// Service needs re-initialization after setting properties
 		$service->initializeObject();
-		$this->outputMessage($service->execute($this));
+		$this->outputMessage($service->execute());
 	}
 
 	/**
@@ -61,8 +61,8 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 */
 	public function migrateDamMetadataCommand() {
 		/** @var Service\MigrateMetadataService $service */
-		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateMetadataService');
-		$this->outputMessage($service->execute($this));
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateMetadataService', $this);
+		$this->outputMessage($service->execute());
 	}
 
 	/**
@@ -75,8 +75,8 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 */
 	public function migrateMediaTagsInRteCommand($table = 'tt_content', $field = 'bodytext') {
 		/** @var Service\MigrateRteMediaTagService $service */
-		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRteMediaTagService');
-		$this->outputMessage($service->execute($this, $table, $field));
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRteMediaTagService', $this);
+		$this->outputMessage($service->execute($table, $field));
 	}
 
 	/**
@@ -261,11 +261,11 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 */
 	public function migrateCategoryRelationsCommand($recordLimit = 999999) {
 		/** @var Service\MigrateCategoryRelationsService $migrateRelationsService */
-		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateCategoryRelationsService');
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateCategoryRelationsService', $this);
 		$service->setRecordLimit((int)$recordLimit);
 		// Service needs re-initialization after setting properties
 		$service->initializeObject();
-		$this->outputMessage($service->execute($this));
+		$this->outputMessage($service->execute());
 	}
 
 	/**
@@ -388,8 +388,8 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 */
 	public function migrateRelationsCommand() {
 		/** @var Service\MigrateRelationsService $migrateRelationsService */
-		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRelationsService');
-		$this->outputMessage($service->execute($this));
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRelationsService', $this);
+		$this->outputMessage($service->execute());
 	}
 
 	/**
@@ -401,8 +401,8 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 */
 	public function migrateSelectionsCommand() {
 		/** @var Service\MigrateSelectionsService $migrateSelectionsService */
-		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateSelectionsService');
-		$this->outputMessage($service->execute($this));
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateSelectionsService', $this);
+		$this->outputMessage($service->execute());
 	}
 
 	/**
@@ -416,11 +416,11 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 */
 	public function migrateDamTtnewsCommand($storageUid = 1) {
 		/** @var Service\MigrateDamTtnewsService $migrateSelectionsService */
-		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateDamTtnewsService');
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateDamTtnewsService', $this);
 		$service->setStorageUid((int)$storageUid);
 		// Service needs re-initialization after setting properties
 		$service->initializeObject();
-		$this->outputMessage($service->execute($this));
+		$this->outputMessage($service->execute());
 	}
 
 	/**

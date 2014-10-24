@@ -25,7 +25,6 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
-use B13\DamFalmigration\Controller\DamMigrationCommandController;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
@@ -46,15 +45,11 @@ class MigrateRelationsService extends AbstractService {
 	/**
 	 * main function
 	 *
-	 * @param DamMigrationCommandController $parent Used to log output to
-	 *    console
-	 *
 	 * @throws \Exception
 	 * @return FlashMessage
 	 */
-	public function execute($parent) {
-		$this->setParent($parent);
-		$this->parent->headerMessage(LocalizationUtility::translate('migrateRelationsCommand', 'dam_falmigration'));
+	public function execute() {
+		$this->controller->headerMessage(LocalizationUtility::translate('migrateRelationsCommand', 'dam_falmigration'));
 		if ($this->isTableAvailable('tx_dam_mm_ref')) {
 			$numberImportedRelationsByContentElement = array();
 			$damRelations = $this->execSelectDamReferencesWhereSysFileExists();
@@ -62,7 +57,7 @@ class MigrateRelationsService extends AbstractService {
 			$counter = 0;
 			$total = $this->database->sql_num_rows($damRelations);
 
-			$this->parent->message('Found ' . $total . ' relations.');
+			$this->controller->message('Found ' . $total . ' relations.');
 			while ($damRelation = $this->database->sql_fetch_assoc($damRelations)) {
 				$counter++;
 				$pid = $this->getPidOfForeignRecord($damRelation);
@@ -147,7 +142,7 @@ class MigrateRelationsService extends AbstractService {
 							}
 						}
 					}
-					$this->parent->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total .
+					$this->controller->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total .
 					                       ' id: ' . $damRelation['uid_local']  .
 					                       ' table: ' . $damRelation['tablenames'] .
 					                       ' ident: ' . $damRelation['ident']);

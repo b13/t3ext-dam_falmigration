@@ -45,9 +45,9 @@ abstract class AbstractService {
 	protected $objectManager;
 
 	/**
-	 * @var DamMigrationCommandController $parent Used to log output to console
+	 * @var \B13\DamFalmigration\Controller\DamMigrationCommandController $controller Used to log output to console
 	 */
-	protected $parent;
+	protected $controller;
 
 	/**
 	 * @var \TYPO3\CMS\Core\Database\DatabaseConnection
@@ -84,6 +84,15 @@ abstract class AbstractService {
 	 * @var integer amount of migrated records
 	 */
 	protected $amountOfMigratedRecords = 0;
+
+	/**
+	 * initializes this object
+	 *
+	 * @param \B13\DamFalmigration\Controller\DamMigrationCommandController $controller
+	 */
+	public function __construct (DamMigrationCommandController $controller = NULL) {
+		$this->setController($controller);
+	}
 
 	/**
 	 * initializes this object
@@ -160,7 +169,7 @@ abstract class AbstractService {
 	protected function migrateDamReferencesToFalReferences($result, $table, $type, $fieldnameMapping = array()) {
 		$counter = 0;
 		$total = $this->database->sql_num_rows($result);
-		$this->parent->infoMessage('Found ' . $total . ' ' . $table . ' records with a dam ' . $type);
+		$this->controller->infoMessage('Found ' . $total . ' ' . $table . ' records with a dam ' . $type);
 		while ($record = $this->database->sql_fetch_assoc($result)) {
 			$identifier = $this->getFullFileName($record);
 
@@ -175,21 +184,21 @@ abstract class AbstractService {
 				try {
 					GeneralUtility::mkdir_deep(PATH_site . $this->storageBasePath . dirname($identifier));
 				} catch (\Exception $e) {
-					$this->parent->errorMessage('Unable to create directory: ' . PATH_site . $this->storageBasePath . $identifier);
+					$this->controller->errorMessage('Unable to create directory: ' . PATH_site . $this->storageBasePath . $identifier);
 					continue;
 				}
-				$this->parent->infoMessage('Creating empty missing file: ' . PATH_site . $this->storageBasePath . $identifier);
+				$this->controller->infoMessage('Creating empty missing file: ' . PATH_site . $this->storageBasePath . $identifier);
 				try {
 					GeneralUtility::writeFile(PATH_site . $this->storageBasePath . $identifier, '');
 				} catch (\Exception $e) {
-					$this->parent->errorMessage('Unable to create file: ' . PATH_site . $this->storageBasePath . $identifier, '');
+					$this->controller->errorMessage('Unable to create file: ' . PATH_site . $this->storageBasePath . $identifier, '');
 					continue;
 				}
 				$fileObject = $this->storageObject->getFile($identifier);
 			}
 			if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
 				if ($fileObject->isMissing()) {
-					$this->parent->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $record['uid'] . ': "' . $identifier . '"');
+					$this->controller->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $record['uid'] . ': "' . $identifier . '"');
 					continue;
 				}
 
@@ -221,9 +230,9 @@ abstract class AbstractService {
 						$insertData
 					);
 					$this->amountOfMigratedRecords++;
-					$this->parent->message($progress . ' Migrating relation for ' . (string)$record['tablenames'] . ' uid: ' . $record['item_uid'] . ' dam uid: ' . $record['dam_uid'] . ' to fal uid: ' . $record['uid_local']);
+					$this->controller->message($progress . ' Migrating relation for ' . (string)$record['tablenames'] . ' uid: ' . $record['item_uid'] . ' dam uid: ' . $record['dam_uid'] . ' to fal uid: ' . $record['uid_local']);
 				} else {
-					$this->parent->message($progress . ' Reference already exists.');
+					$this->controller->message($progress . ' Reference already exists.');
 				}
 			}
 		}
@@ -332,12 +341,12 @@ abstract class AbstractService {
 	}
 
 	/**
-	 * @param DamMigrationCommandController $parent
+	 * @param DamMigrationCommandController $controller
 	 *
 	 * @return $this to allow for chaining
 	 */
-	public function setParent($parent) {
-		$this->parent = $parent;
+	public function setController($controller) {
+		$this->controller = $controller;
 
 		return $this;
 	}

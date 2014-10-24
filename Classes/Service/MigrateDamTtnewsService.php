@@ -34,16 +34,12 @@ class MigrateDamTtnewsService extends AbstractService {
 	/**
 	 * Main function, returns a FlashMessge
 	 *
-	 * @param \B13\DamFalmigration\Controller\DamMigrationCommandController $parent Used to log output to
-	 *    console
-	 *
 	 * @throws \Exception
 	 *
 	 * @return \TYPO3\CMS\Core\Messaging\FlashMessage
 	 */
-	public function execute($parent) {
-		$this->setParent($parent);
-		$this->parent->headerMessage(LocalizationUtility::translate('migrateDamTtnewsCommand', 'dam_falmigration'));
+	public function execute() {
+		$this->controller->headerMessage(LocalizationUtility::translate('migrateDamTtnewsCommand', 'dam_falmigration'));
 		if ($this->isTableAvailable('tx_dam_mm_ref')) {
 			$articlesWithImagesResult = $this->getRecordsWithDamConnections('tt_news', 'tx_damnews_dam_images');
 			$this->migrateDamReferencesToFalReferences($articlesWithImagesResult, 'tt_news', 'image', array('tx_damnews_dam_images' => 'tx_falttnews_fal_images'));
@@ -51,7 +47,7 @@ class MigrateDamTtnewsService extends AbstractService {
 			$articlesWithImagesResult = $this->getRecordsWithDamConnections('tt_news', 'tx_damnews_dam_media');
 			$this->migrateDamReferencesToFalReferences($articlesWithImagesResult, 'tt_news', 'media', array('tx_damnews_dam_media' => 'tx_falttnews_fal_media'));
 		} else {
-			$this->parent->errorMessage('Table tx_dam_mm_ref not found. So there is nothing to migrate.');
+			$this->controller->errorMessage('Table tx_dam_mm_ref not found. So there is nothing to migrate.');
 		}
 
 		return $this->getResultMessage();

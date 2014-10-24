@@ -22,7 +22,6 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  */
-use B13\DamFalmigration\Controller\DamMigrationCommandController;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -84,23 +83,19 @@ class MigrateService extends AbstractService {
 	 * main function, needs to return TRUE or FALSE in order to tell
 	 * the scheduler whether the task went through smoothly
 	 *
-	 * @param DamMigrationCommandController $parent Used to log output to
-	 *    console
-	 *
 	 * @throws \TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException
 	 * @throws \Exception
 	 * @return FlashMessage
 	 */
-	public function execute($parent) {
-		$this->setParent($parent);
-		$this->parent->headerMessage(LocalizationUtility::translate('connectDamRecordsWithSysFileCommand', 'dam_falmigration', array($this->storageObject->getName())));
+	public function execute() {
+		$this->controller->headerMessage(LocalizationUtility::translate('connectDamRecordsWithSysFileCommand', 'dam_falmigration', array($this->storageObject->getName())));
 		if ($this->isTableAvailable('tx_dam')) {
 
 			$res = $this->execSelectNotMigratedDamRecordsQuery();
 
 			$counter = 0;
 			$total = $this->database->sql_num_rows($res);
-			$this->parent->infoMessage('Found ' . $total . ' DAM records without a connection to a sys_file entry');
+			$this->controller->infoMessage('Found ' . $total . ' DAM records without a connection to a sys_file entry');
 
 			while ($damRecord = $this->database->sql_fetch_assoc($res)) {
 				$counter++;
@@ -111,17 +106,17 @@ class MigrateService extends AbstractService {
 						$fileObject = $this->storageObject->getFile($fullFileName);
 						if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
 							if ($fileObject->isMissing()) {
-								$this->parent->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $damRecord['uid'] . ': "' . $fullFileName . '"');
+								$this->controller->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $damRecord['uid'] . ': "' . $fullFileName . '"');
 								continue;
 							}
-							$this->parent->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total . ' id: ' . $damRecord['uid'] . ': ' . $fullFileName);
+							$this->controller->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total . ' id: ' . $damRecord['uid'] . ': ' . $fullFileName);
 							$this->migrateFileFromDamToFal($damRecord, $fileObject);
 							$this->amountOfMigratedRecords++;
 						}
 					} catch (\Exception $e) {
 						// If file is not found
 						$this->setDamFileMissingByUid($damRecord['uid']);
-						$this->parent->warningMessage($e->getMessage());
+						$this->controller->warningMessage($e->getMessage());
 						$this->amountOfFilesNotFound++;
 						continue;
 					}
@@ -129,11 +124,11 @@ class MigrateService extends AbstractService {
 			}
 			$this->database->sql_free_result($res);
 
-			$this->parent->message(
+			$this->controller->message(
 				'Not migrated dam records at start of task: ' . $total . '. Migrated files after task: ' . $this->amountOfMigratedRecords . '. Files not found: ' . $this->amountOfFilesNotFound . '.'
 			);
 		} else {
-			$this->parent->errorMessage('Extension tx_dam is not installed. So there is nothing to migrate.');
+			$this->controller->errorMessage('Extension tx_dam is not installed. So there is nothing to migrate.');
 		}
 
 		return $this->getResultMessage();

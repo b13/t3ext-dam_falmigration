@@ -23,8 +23,6 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *  This copyright notice MUST APPEAR in all copies of the script!
  */
 
-
-use B13\DamFalmigration\Controller\DamMigrationCommandController;
 use TYPO3\CMS\Core\Database\PreparedStatement;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
@@ -43,8 +41,6 @@ class MigrateRteMediaTagService extends AbstractService {
 	/**
 	 * main function, returns a FlashMessge
 	 *
-	 * @param DamMigrationCommandController $parent Used to log output to
-	 *    console
 	 * @param string $table The table to search for RTE fields
 	 * @param string $field The fieldname to search
 	 *
@@ -52,15 +48,14 @@ class MigrateRteMediaTagService extends AbstractService {
 	 *
 	 * @return FlashMessage
 	 */
-	public function execute($parent, $table, $field) {
-		$this->setParent($parent);
-		$this->parent->headerMessage(LocalizationUtility::translate('migrateMediaTagsInRteCommand', 'dam_falmigration'));
+	public function execute($table, $field) {
+		$this->controller->headerMessage(LocalizationUtility::translate('migrateMediaTagsInRteCommand', 'dam_falmigration'));
 		$table = preg_replace('/[^a-zA-Z0-9_-]/', '', $table);
 		$field = preg_replace('/[^a-zA-Z0-9_-]/', '', $field);
 
 		$records = $this->getRecords($table, $field);
 
-		$this->parent->infoMessage('Found ' . count($records) . ' ' . $table . ' records that have a "<media>" tag in the field ' . $field);
+		$this->controller->infoMessage('Found ' . count($records) . ' ' . $table . ' records that have a "<media>" tag in the field ' . $field);
 
 		/** @var PreparedStatement $getSysFileUidStatement */
 		$getSysFileUidStatement = $this->database->prepare_SELECTquery(
@@ -81,7 +76,7 @@ class MigrateRteMediaTagService extends AbstractService {
 					// see EXT:dam/mediatag/class.tx_dam_rtetransform_mediatag.php
 					list($linkTarget, $linkClass, $linkTitle) = explode(' ', trim($result[2]), 3);
 					$linkText = $result[3];
-					$this->parent->message('Replacing "' . $result[0] . '" with DAM UID ' . $damUid . ' (target ' . $linkTarget . '; class ' . $linkClass . '; title "' . $linkTitle . '") and linktext "' . $linkText . '"');
+					$this->controller->message('Replacing "' . $result[0] . '" with DAM UID ' . $damUid . ' (target ' . $linkTarget . '; class ' . $linkClass . '; title "' . $linkTitle . '") and linktext "' . $linkText . '"');
 					/**
 					 * after migration of DAM-Records we can find sys_file-UID with help of
 					 * DAM-UID fetch the DAM uid from sys_file and replace the full tag with a
@@ -94,7 +89,7 @@ class MigrateRteMediaTagService extends AbstractService {
 						$replaceString = '<link file:' . $falRecord['uid'] . ' ' . $result[2] . '>' . $linkText . '</link>';
 						$finalContent = str_replace($searchString, $replaceString, $finalContent);
 					} else {
-						$this->parent->warningMessage('No FAL record found for dam uid: ' . $damUid);
+						$this->controller->warningMessage('No FAL record found for dam uid: ' . $damUid);
 					}
 				}
 				// update the record
@@ -104,11 +99,11 @@ class MigrateRteMediaTagService extends AbstractService {
 						'uid=' . $rec['uid'],
 						array($field => $finalContent)
 					);
-					$this->parent->infoMessage('Updated ' . $table . ':' . $rec['uid'] . ' with: ' . $finalContent);
+					$this->controller->infoMessage('Updated ' . $table . ':' . $rec['uid'] . ' with: ' . $finalContent);
 					$this->amountOfMigratedRecords++;
 				}
 			} else {
-				$this->parent->warningMessage('Nothing found: ' . $originalContent);
+				$this->controller->warningMessage('Nothing found: ' . $originalContent);
 			}
 		}
 

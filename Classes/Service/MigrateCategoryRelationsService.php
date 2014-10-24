@@ -51,19 +51,15 @@ class MigrateCategoryRelationsService extends AbstractService {
 	/**
 	 * main function, returns a FlashMessge
 	 *
-	 * @param \B13\DamFalmigration\Controller\DamMigrationCommandController $parent Used
-	 *    to log output to console
-	 *
 	 * @throws \Exception
 	 *
 	 * @return FlashMessage
 	 */
-	public function execute($parent) {
-		$this->setParent($parent);
-		$this->parent->headerMessage(LocalizationUtility::translate('migrateCategoryRelationsCommand', 'dam_falmigration'));
+	public function execute() {
+		$this->controller->headerMessage(LocalizationUtility::translate('migrateCategoryRelationsCommand', 'dam_falmigration'));
 		if ($this->isTableAvailable('tx_dam_mm_ref')) {
 			$categoryRelations = $this->getCategoryRelationsWhereSysCategoryExists();
-			$this->parent->infoMessage('Found ' . count($categoryRelations) . ' relations');
+			$this->controller->infoMessage('Found ' . count($categoryRelations) . ' relations');
 			foreach ($categoryRelations as $categoryRelation) {
 				$insertData = array(
 					'uid_local' => $categoryRelation['sys_category_uid'],
@@ -80,15 +76,15 @@ class MigrateCategoryRelationsService extends AbstractService {
 						$insertData
 					);
 					$this->amountOfMigratedRecords++;
-					$this->parent->message('Migrating relation for category ' . $categoryRelation['sys_category_uid']);
+					$this->controller->message('Migrating relation for category ' . $categoryRelation['sys_category_uid']);
 				} else {
-					$this->parent->message('Relation already migrated.');
+					$this->controller->message('Relation already migrated.');
 				}
 			}
 
 			return $this->getResultMessage();
 		} else {
-			$this->parent->errorMessage('Table tx_dam_mm_ref not found. So there is nothing to migrate.');
+			$this->controller->errorMessage('Table tx_dam_mm_ref not found. So there is nothing to migrate.');
 		}
 	}
 
