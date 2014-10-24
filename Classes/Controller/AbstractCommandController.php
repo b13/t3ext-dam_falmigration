@@ -69,6 +69,15 @@ class AbstractCommandController extends CommandController {
 	}
 
 	/**
+	 * Get module configuration
+	 *
+	 * @return array
+	 */
+	public function getConfiguration() {
+		return $this->configuration;
+	}
+
+	/**
 	 * Output FlashMessage
 	 *
 	 * @param FlashMessage $message

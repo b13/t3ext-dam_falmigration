@@ -39,8 +39,8 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 abstract class AbstractService {
 
 	/**
-	 * @inject
 	 * @var \TYPO3\CMS\Extbase\Object\ObjectManager
+	 * @inject
 	 */
 	protected $objectManager;
 
@@ -55,8 +55,8 @@ abstract class AbstractService {
 	protected $database;
 
 	/**
-	 * @inject
 	 * @var \TYPO3\CMS\Core\Resource\FileRepository
+	 * @inject
 	 */
 	protected $fileRepository;
 
@@ -187,11 +187,18 @@ abstract class AbstractService {
 					$this->controller->errorMessage('Unable to create directory: ' . PATH_site . $this->storageBasePath . $identifier);
 					continue;
 				}
-				$this->controller->infoMessage('Creating empty missing file: ' . PATH_site . $this->storageBasePath . $identifier);
-				try {
-					GeneralUtility::writeFile(PATH_site . $this->storageBasePath . $identifier, '');
-				} catch (\Exception $e) {
-					$this->controller->errorMessage('Unable to create file: ' . PATH_site . $this->storageBasePath . $identifier, '');
+				if (isset($this->controller->getConfiguration()['createMissingFiles']) &&
+				    (int)$this->controller->getConfiguration()['createMissingFiles']
+				) {
+					$this->controller->infoMessage('Creating empty missing file: ' . PATH_site . $this->storageBasePath . $identifier);
+					try {
+						GeneralUtility::writeFile(PATH_site . $this->storageBasePath . $identifier, '');
+					} catch (\Exception $e) {
+						$this->controller->errorMessage('Unable to create file: ' . PATH_site . $this->storageBasePath . $identifier);
+						continue;
+					}
+				} else {
+					$this->controller->errorMessage('File not found: ' . PATH_site . $this->storageBasePath . $identifier);
 					continue;
 				}
 				$fileObject = $this->storageObject->getFile($identifier);

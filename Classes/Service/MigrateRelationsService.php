@@ -15,8 +15,9 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *
  *  The GNU General Public License can be found at
  *  http://www.gnu.org/copyleft/gpl.html.
- *  A copy is found in the textfile GPL.txt and important notices to the license
- *  from the author is found in LICENSE.txt distributed with these scripts.
+ *  A copy is found in the textfile GPL.txt and important notices to the
+ * license from the author is found in LICENSE.txt distributed with these
+ * scripts.
  *
  *  This script is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -32,7 +33,7 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
  * Migrate DAM relations to FAL relations
  * right now this is dam_ttcontent, dam_uploads
  *
- * @author      Benjamin Mack <benni@typo3.org>
+ * @author Benjamin Mack <benni@typo3.org>
  */
 class MigrateRelationsService extends AbstractService {
 
@@ -79,7 +80,7 @@ class MigrateRelationsService extends AbstractService {
 
 				// we need an array holding the already migrated file-relations to choose the right line of the imagecaption-field.
 				if ($insertData['tablenames'] == 'tt_content' && ($insertData['fieldname'] == 'media' || $insertData['fieldname'] == 'image')) {
-					$numberImportedRelationsByContentElement[$insertData['uid_foreign']] ++;
+					$numberImportedRelationsByContentElement[$insertData['uid_foreign']]++;
 				}
 
 				if (!$this->doesFileReferenceExist($damRelation)) {
@@ -109,14 +110,14 @@ class MigrateRelationsService extends AbstractService {
 								'uid = ' . $damRelation['uid_foreign']
 							);
 							if (!empty($linkFromContentRecord)) {
-								$imageLinks = explode(chr(10),$linkFromContentRecord['image_link']);
-								$imageCaptions = explode(chr(10),$linkFromContentRecord['imagecaption']);
+								$imageLinks = explode(chr(10), $linkFromContentRecord['image_link']);
+								$imageCaptions = explode(chr(10), $linkFromContentRecord['imagecaption']);
 								$this->database->exec_UPDATEquery(
 									'sys_file_reference',
 									'uid = ' . $newRelationsRecordUid,
 									array(
-										'link' => $imageLinks[$numberImportedRelationsByContentElement[$insertData['uid_foreign']]-1],
-										'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']]-1]
+										'link' => $imageLinks[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1],
+										'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]
 
 									)
 								);
@@ -131,24 +132,25 @@ class MigrateRelationsService extends AbstractService {
 
 
 							if (!empty($linkFromContentRecord)) {
-								$imageCaptions = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(chr(10),$linkFromContentRecord['imagecaption']);
+								$imageCaptions = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(chr(10), $linkFromContentRecord['imagecaption']);
 								$this->database->exec_UPDATEquery(
 									'sys_file_reference',
 									'uid = ' . $newRelationsRecordUid,
 									array(
-										'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']]-1]
+										'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]
 									)
 								);
 							}
 						}
 					}
 					$this->controller->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total .
-					                       ' id: ' . $damRelation['uid_local']  .
-					                       ' table: ' . $damRelation['tablenames'] .
-					                       ' ident: ' . $damRelation['ident']);
+					                           ' id: ' . $damRelation['uid_local'] .
+					                           ' table: ' . $damRelation['tablenames'] .
+					                           ' ident: ' . $damRelation['ident']);
 					$this->amountOfMigratedRecords++;
 				}
 			}
+
 			return $this->getResultMessage();
 		} else {
 			throw new \Exception('Extension tx_dam and dam_ttcontent is not installed. So there is nothing to migrate.');
@@ -160,6 +162,7 @@ class MigrateRelationsService extends AbstractService {
 	 * this is needed by sys_file_reference records
 	 *
 	 * @param array $damRelation
+	 *
 	 * @return integer
 	 */
 	protected function getPidOfForeignRecord(array $damRelation) {
@@ -168,12 +171,14 @@ class MigrateRelationsService extends AbstractService {
 			$damRelation['tablenames'],
 			'uid=' . (int)$damRelation['uid_foreign']
 		);
+
 		return $record['pid'] ?: 0;
 	}
 
 	/**
-	 * After a migration of tx_dam -> sys_file the col _migrateddamuid is filled with dam uid
-	 * Now we can search in dam relations for dam records which have already been migrated to sys_file
+	 * After a migration of tx_dam -> sys_file the col _migrateddamuid is
+	 * filled with dam uid Now we can search in dam relations for dam records
+	 * which have already been migrated to sys_file
 	 *
 	 * @return \mysqli_result
 	 */
@@ -199,19 +204,22 @@ class MigrateRelationsService extends AbstractService {
 
 	/**
 	 * col for fieldname was saved in col "ident"
-	 * But: If dam_ttcontent is installed fieldName is "image" for images and "media" for uploads
+	 * But: If dam_ttcontent is installed fieldName is "image" for images and
+	 * "media" for uploads
 	 *
 	 * @param array $damRelation
+	 *
 	 * @return string
 	 */
 	protected function getColForFieldName(array $damRelation) {
 		if ($damRelation['tablenames'] == 'tt_content' && $damRelation['ident'] == 'tx_damttcontent_files') {
 			$fieldName = 'image';
-		} elseif ($damRelation['tablenames'] == 'tt_content'  && $damRelation['ident'] == 'tx_damttcontent_files_upload') {
+		} elseif ($damRelation['tablenames'] == 'tt_content' && $damRelation['ident'] == 'tx_damttcontent_files_upload') {
 			$fieldName = 'media';
 		} else {
 			$fieldName = $damRelation['ident'];
 		}
+
 		return $fieldName;
 	}
 
@@ -219,6 +227,7 @@ class MigrateRelationsService extends AbstractService {
 	 * update reference index
 	 *
 	 * @param integer $uid
+	 *
 	 * @return void
 	 */
 	protected function updateReferenceIndex($uid) {
