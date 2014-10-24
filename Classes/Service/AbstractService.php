@@ -245,7 +245,8 @@ abstract class AbstractService {
 			' AND uid_foreign = ' . $fileReference['uid_foreign'] .
 			' AND tablenames = "' . $fileReference['tablenames'] . '"' .
 			' AND fieldname = "' . $fileReference['ident'] . '"' .
-			' AND table_local = "sys_file"'
+			' AND table_local = "sys_file"' .
+	      ' AND deleted = 0'
 		);
 	}
 

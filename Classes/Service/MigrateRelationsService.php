@@ -62,6 +62,7 @@ class MigrateRelationsService extends AbstractService {
 			$counter = 0;
 			$total = $this->database->sql_num_rows($damRelations);
 
+			$this->parent->message('Found ' . $total . ' relations.');
 			while ($damRelation = $this->database->sql_fetch_assoc($damRelations)) {
 				$counter++;
 				$pid = $this->getPidOfForeignRecord($damRelation);
@@ -86,7 +87,7 @@ class MigrateRelationsService extends AbstractService {
 					$numberImportedRelationsByContentElement[$insertData['uid_foreign']] ++;
 				}
 
-				if (!$this->checkIfSysFileRelationExists($damRelation)) {
+				if (!$this->doesFileReferenceExist($damRelation)) {
 					$this->database->exec_INSERTquery(
 						'sys_file_reference',
 						$insertData
@@ -146,7 +147,10 @@ class MigrateRelationsService extends AbstractService {
 							}
 						}
 					}
-					$this->parent->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total . ' id: ' . $damRelation['uid_local'] . ' ident: ' . $damRelation['ident']);
+					$this->parent->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total .
+					                       ' id: ' . $damRelation['uid_local']  .
+					                       ' table: ' . $damRelation['tablenames'] .
+					                       ' ident: ' . $damRelation['ident']);
 					$this->amountOfMigratedRecords++;
 				}
 			}
@@ -180,36 +184,22 @@ class MigrateRelationsService extends AbstractService {
 	 */
 	protected function execSelectDamReferencesWhereSysFileExists() {
 		return $this->database->exec_SELECTquery(
-			'MM.*, SF.uid as sys_file_uid, MD.title, MD.description, MD.alternative',
-			'tx_dam_mm_ref MM, sys_file SF, sys_file_metadata MD',
-			'MD.file = SF.uid AND SF._migrateddamuid = MM.uid_local',
+			'tx_dam_mm_ref.*,
+			sys_file_metadata.title,
+			sys_file_metadata.description,
+			sys_file_metadata.alternative,
+			sys_file.uid as sys_file_uid',
+			'tx_dam_mm_ref
+			JOIN sys_file ON
+				sys_file._migrateddamuid = tx_dam_mm_ref.uid_local
+			JOIN sys_file_metadata ON
+				sys_file.uid = sys_file_metadata.file
+				',
+			'tx_dam_mm_ref.tablenames <> ""',
 			'',
-			'MM.sorting ASC',
+			'tx_dam_mm_ref.sorting ASC',
 			(int)$this->getRecordLimit()
 		);
-	}
-
-	/**
-	 * check if a sys_file_reference already exists
-	 *
-	 * @param array $damRelation
-	 * @return boolean
-	 */
-	protected function checkIfSysFileRelationExists(array $damRelation) {
-		$amountOfExistingRecords = $this->database->exec_SELECTcountRows(
-			'*',
-			'sys_file_reference',
-			'uid_local = ' . $damRelation['sys_file_uid'] .
-			' AND uid_foreign = ' . $damRelation['uid_foreign'] .
-			' AND tablenames = ' . $this->database->fullQuoteStr($damRelation['tablenames'], 'sys_file_reference') .
-			' AND fieldname = ' . $this->database->fullQuoteStr($this->getColForFieldName($damRelation), 'sys_file_reference') .
-			' AND deleted = 0'
-		);
-		if ($amountOfExistingRecords) {
-			return TRUE;
-		} else {
-			return FALSE;
-		}
 	}
 
 	/**
