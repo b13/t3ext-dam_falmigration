@@ -89,47 +89,46 @@ class MigrateService extends AbstractService {
 	 */
 	public function execute() {
 		$this->controller->headerMessage(LocalizationUtility::translate('connectDamRecordsWithSysFileCommand', 'dam_falmigration', array($this->storageObject->getName())));
-		if ($this->isTableAvailable('tx_dam')) {
+		if (!$this->isTableAvailable('tx_dam')) {
+			return $this->getResultMessage('damTableNotFound');
+		}
 
-			$res = $this->execSelectNotMigratedDamRecordsQuery();
+		$result = $this->execSelectNotMigratedDamRecordsQuery();
 
-			$counter = 0;
-			$total = $this->database->sql_num_rows($res);
-			$this->controller->infoMessage('Found ' . $total . ' DAM records without a connection to a sys_file entry');
+		$counter = 0;
+		$total = $this->database->sql_num_rows($result);
+		$this->controller->infoMessage('Found ' . $total . ' DAM records without a connection to a sys_file entry');
 
-			while ($damRecord = $this->database->sql_fetch_assoc($res)) {
-				$counter++;
-				if ($this->isValidDirectory($damRecord)) {
-					try {
-						$fullFileName = $this->getFullFileName($damRecord);
+		while ($damRecord = $this->database->sql_fetch_assoc($result)) {
+			$counter++;
+			if ($this->isValidDirectory($damRecord)) {
+				try {
+					$fullFileName = $this->getFullFileName($damRecord);
 
-						$fileObject = $this->storageObject->getFile($fullFileName);
-						if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
-							if ($fileObject->isMissing()) {
-								$this->controller->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $damRecord['uid'] . ': "' . $fullFileName . '"');
-								continue;
-							}
-							$this->controller->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total . ' id: ' . $damRecord['uid'] . ': ' . $fullFileName);
-							$this->migrateFileFromDamToFal($damRecord, $fileObject);
-							$this->amountOfMigratedRecords++;
+					$fileObject = $this->storageObject->getFile($fullFileName);
+					if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
+						if ($fileObject->isMissing()) {
+							$this->controller->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $damRecord['uid'] . ': "' . $fullFileName . '"');
+							continue;
 						}
-					} catch (\Exception $e) {
-						// If file is not found
-						$this->setDamFileMissingByUid($damRecord['uid']);
-						$this->controller->warningMessage($e->getMessage());
-						$this->amountOfFilesNotFound++;
-						continue;
+						$this->controller->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total . ' id: ' . $damRecord['uid'] . ': ' . $fullFileName);
+						$this->migrateFileFromDamToFal($damRecord, $fileObject);
+						$this->amountOfMigratedRecords++;
 					}
+				} catch (\Exception $e) {
+					// If file is not found
+					$this->setDamFileMissingByUid($damRecord['uid']);
+					$this->controller->warningMessage($e->getMessage());
+					$this->amountOfFilesNotFound++;
+					continue;
 				}
 			}
-			$this->database->sql_free_result($res);
-
-			$this->controller->message(
-				'Not migrated dam records at start of task: ' . $total . '. Migrated files after task: ' . $this->amountOfMigratedRecords . '. Files not found: ' . $this->amountOfFilesNotFound . '.'
-			);
-		} else {
-			$this->controller->errorMessage('Extension tx_dam is not installed. So there is nothing to migrate.');
 		}
+		$this->database->sql_free_result($res);
+
+		$this->controller->message(
+			'Not migrated dam records at start of task: ' . $total . '. Migrated files after task: ' . $this->amountOfMigratedRecords . '. Files not found: ' . $this->amountOfFilesNotFound . '.'
+		);
 
 		return $this->getResultMessage();
 	}

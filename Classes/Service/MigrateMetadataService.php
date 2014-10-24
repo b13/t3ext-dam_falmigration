@@ -122,35 +122,34 @@ class MigrateMetadataService extends AbstractService {
 	 */
 	public function execute() {
 		$this->controller->headerMessage(LocalizationUtility::translate('migrateDamMetadataCommand', 'dam_falmigration'));
-		if ($this->isTableAvailable('tx_dam')) {
-
-			$res = $this->execSelectMigratedSysFilesQuery();
-			$total = $this->database->sql_num_rows($res);
-
-			$this->controller->infoMessage('Found ' . $total . ' migrated sys_file records');
-
-			$this->isInstalledFileMetadata = ExtensionManagementUtility::isLoaded('filemetadata');
-			$this->isInstalledMedia = ExtensionManagementUtility::isLoaded('media');
-
-			while ($record = $this->database->sql_fetch_assoc($res)) {
-				$this->database->exec_UPDATEquery(
-					'sys_file_metadata',
-					'uid = ' . $record['metadata_uid'],
-					$this->createArrayForUpdateSysFileMetadataRecord($record)
-				);
-
-				$this->database->exec_UPDATEquery(
-					'sys_file',
-					'uid = ' . $record['file_uid'],
-					$this->createArrayForUpdateSysFileRecord($record)
-				);
-				$this->controller->message('Updating metadata of record: ' . $record['file_uid'] . ' ' . $record['file_uid']);
-				$this->amountOfMigratedRecords++;
-			}
-			$this->database->sql_free_result($res);
-		} else {
-			$this->controller->errorMessage('Extension tx_dam is not installed. So there is nothing to migrate.');
+		if (!$this->isTableAvailable('tx_dam')) {
+			return $this->getResultMessage('damTableNotFound');
 		}
+
+		$res = $this->execSelectMigratedSysFilesQuery();
+		$total = $this->database->sql_num_rows($res);
+
+		$this->controller->infoMessage('Found ' . $total . ' migrated sys_file records');
+
+		$this->isInstalledFileMetadata = ExtensionManagementUtility::isLoaded('filemetadata');
+		$this->isInstalledMedia = ExtensionManagementUtility::isLoaded('media');
+
+		while ($record = $this->database->sql_fetch_assoc($res)) {
+			$this->database->exec_UPDATEquery(
+				'sys_file_metadata',
+				'uid = ' . $record['metadata_uid'],
+				$this->createArrayForUpdateSysFileMetadataRecord($record)
+			);
+
+			$this->database->exec_UPDATEquery(
+				'sys_file',
+				'uid = ' . $record['file_uid'],
+				$this->createArrayForUpdateSysFileRecord($record)
+			);
+			$this->controller->message('Updating metadata of record: ' . $record['file_uid'] . ' ' . $record['file_uid']);
+			$this->amountOfMigratedRecords++;
+		}
+		$this->database->sql_free_result($res);
 
 		return $this->getResultMessage();
 	}

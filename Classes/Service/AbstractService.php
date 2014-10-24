@@ -291,15 +291,22 @@ abstract class AbstractService {
 	/**
 	 * add flashmessage if migration was successful or not.
 	 *
+	 * @param null $status
+	 *
 	 * @return FlashMessage
 	 */
-	protected function getResultMessage() {
+	protected function getResultMessage($status = NULL) {
+		$headline = LocalizationUtility::translate('nothingToSeeHere.' . $status, 'dam_falmigration');;
+		$message = LocalizationUtility::translate('moveAlong' . $status, 'dam_falmigration');
 		if ($this->amountOfMigratedRecords > 0) {
 			$headline = LocalizationUtility::translate('migrationSuccessful', 'dam_falmigration');
 			$message = LocalizationUtility::translate('migratedFiles', 'dam_falmigration', array(0 => $this->amountOfMigratedRecords));
-		} else {
+		} elseif ($this->amountOfMigratedRecords === 0) {
 			$headline = LocalizationUtility::translate('migrationNotNecessary', 'dam_falmigration');;
 			$message = LocalizationUtility::translate('allFilesMigrated', 'dam_falmigration');
+		} elseif ($status !== NULL) {
+			$headline = LocalizationUtility::translate('migrationStatusHeadline.' . $status, 'dam_falmigration');;
+			$message = LocalizationUtility::translate('migrationStatusMessage' . $status, 'dam_falmigration');
 		}
 
 		$messageObject = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);

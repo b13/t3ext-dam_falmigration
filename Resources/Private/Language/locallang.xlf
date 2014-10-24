@@ -4,6 +4,24 @@
 	      date="2013-10-18T13:28:32Z" product-name="dam_falmigration">
 		<header/>
 		<body>
+			<trans-unit id="nothingToSeeHere" xml:space="preserve">
+				<source>Nothing to see here</source>
+			</trans-unit>
+			<trans-unit id="moveAlong" xml:space="preserve">
+				<source>Move along . . .</source>
+			</trans-unit>
+			<trans-unit id="migrationStatusHeadline.damTableNotFound" xml:space="preserve">
+				<source>Dam table not found</source>
+			</trans-unit>
+			<trans-unit id="migrationStatusMessage.damTableNotFound" xml:space="preserve">
+				<source>Could not find the dan table (tx_dam) aborting.</source>
+			</trans-unit>
+			<trans-unit id="migrationStatusHeadline.referenceTableNotFound" xml:space="preserve">
+				<source>Dam reference table not found</source>
+			</trans-unit>
+			<trans-unit id="migrationStatusMessage.referenceTableNotFound" xml:space="preserve">
+				<source>Could not find the reference table (tx_dam_mm_ref) aborting.</source>
+			</trans-unit>
 			<trans-unit id="migrateCategoryRelationsCommand" xml:space="preserve">
 				<source>Migrate category relations</source>
 			</trans-unit>

@@ -40,15 +40,15 @@ class MigrateDamTtnewsService extends AbstractService {
 	 */
 	public function execute() {
 		$this->controller->headerMessage(LocalizationUtility::translate('migrateDamTtnewsCommand', 'dam_falmigration'));
-		if ($this->isTableAvailable('tx_dam_mm_ref')) {
-			$articlesWithImagesResult = $this->getRecordsWithDamConnections('tt_news', 'tx_damnews_dam_images');
-			$this->migrateDamReferencesToFalReferences($articlesWithImagesResult, 'tt_news', 'image', array('tx_damnews_dam_images' => 'tx_falttnews_fal_images'));
-
-			$articlesWithImagesResult = $this->getRecordsWithDamConnections('tt_news', 'tx_damnews_dam_media');
-			$this->migrateDamReferencesToFalReferences($articlesWithImagesResult, 'tt_news', 'media', array('tx_damnews_dam_media' => 'tx_falttnews_fal_media'));
-		} else {
-			$this->controller->errorMessage('Table tx_dam_mm_ref not found. So there is nothing to migrate.');
+		if (!$this->isTableAvailable('tx_dam_mm_ref')) {
+			return $this->getResultMessage('referenceTableNotFound');
 		}
+
+		$articlesWithImagesResult = $this->getRecordsWithDamConnections('tt_news', 'tx_damnews_dam_images');
+		$this->migrateDamReferencesToFalReferences($articlesWithImagesResult, 'tt_news', 'image', array('tx_damnews_dam_images' => 'tx_falttnews_fal_images'));
+
+		$articlesWithImagesResult = $this->getRecordsWithDamConnections('tt_news', 'tx_damnews_dam_media');
+		$this->migrateDamReferencesToFalReferences($articlesWithImagesResult, 'tt_news', 'media', array('tx_damnews_dam_media' => 'tx_falttnews_fal_media'));
 
 		return $this->getResultMessage();
 	}
