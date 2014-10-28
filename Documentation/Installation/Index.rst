@@ -28,7 +28,7 @@ You can get the latest source from https://github.com/b13/t3ext-dam_falmigration
 
 .. code-block:: bash
 
-	cd typo3temp/ext/
+	cd typo3conf/ext
 	git clone https://github.com/b13/t3ext-dam_falmigration.git dam_falmigration
 
 Or you can add it to your project as a submodule:
