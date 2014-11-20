@@ -187,9 +187,9 @@ abstract class AbstractService {
 					$this->controller->errorMessage('Unable to create directory: ' . PATH_site . $this->storageBasePath . $identifier);
 					continue;
 				}
-				if (isset($this->controller->getConfiguration()['createMissingFiles']) &&
-				    (int)$this->controller->getConfiguration()['createMissingFiles']
-				) {
+
+				$config = $this->controller->getConfiguration();
+				if (isset($config['createMissingFiles']) && (int)$config['createMissingFiles']) {
 					$this->controller->infoMessage('Creating empty missing file: ' . PATH_site . $this->storageBasePath . $identifier);
 					try {
 						GeneralUtility::writeFile(PATH_site . $this->storageBasePath . $identifier, '');
@@ -222,6 +222,9 @@ abstract class AbstractService {
 				if (!$this->doesFileReferenceExist($record)) {
 
 					$insertData = array(
+						'tstamp' => time(),
+						'crdate' => time(),
+						'cruser_id' => $GLOBALS['BE_USER']->user['uid'],
 						'uid_local' => $record['uid_local'],
 						'uid_foreign' => (int)$record['uid_foreign'],
 						'sorting' => (int)$record['sorting'],
@@ -292,26 +295,29 @@ abstract class AbstractService {
 	 * add flashmessage if migration was successful or not.
 	 *
 	 * @param null $status
+	 * @param null $message Additional message body to pass along with a status
 	 *
 	 * @return FlashMessage
 	 */
-	protected function getResultMessage($status = NULL) {
-		$headline = LocalizationUtility::translate('nothingToSeeHere.' . $status, 'dam_falmigration');;
-		$message = LocalizationUtility::translate('moveAlong' . $status, 'dam_falmigration');
+	protected function getResultMessage($status = NULL, $message = NULL) {
+		$headline = LocalizationUtility::translate('nothingToSeeHere', 'dam_falmigration');
+		if ($message === NULL) {
+			$message = LocalizationUtility::translate('moveAlong', 'dam_falmigration');
+		}
 		if ($this->amountOfMigratedRecords > 0) {
 			$headline = LocalizationUtility::translate('migrationSuccessful', 'dam_falmigration');
 			$message = LocalizationUtility::translate('migratedFiles', 'dam_falmigration', array(0 => $this->amountOfMigratedRecords));
 		} elseif ($this->amountOfMigratedRecords === 0) {
-			$headline = LocalizationUtility::translate('migrationNotNecessary', 'dam_falmigration');;
+			$headline = LocalizationUtility::translate('migrationNotNecessary', 'dam_falmigration');
 			$message = LocalizationUtility::translate('allFilesMigrated', 'dam_falmigration');
 		} elseif ($status !== NULL) {
-			$headline = LocalizationUtility::translate('migrationStatusHeadline.' . $status, 'dam_falmigration');;
-			$message = LocalizationUtility::translate('migrationStatusMessage' . $status, 'dam_falmigration');
+			$headline = LocalizationUtility::translate('migrationStatusHeadline.' . $status, 'dam_falmigration');
+			if ($message === NULL) {
+				$message = LocalizationUtility::translate('migrationStatusMessage' . $status, 'dam_falmigration');
+			}
 		}
 
-		$messageObject = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
-
-		return $messageObject;
+		return GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
 	}
 
 	/**

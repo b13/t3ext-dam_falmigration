@@ -47,8 +47,8 @@ class MigrateDamTtnewsService extends AbstractService {
 		$articlesWithImagesResult = $this->getRecordsWithDamConnections('tt_news', 'tx_damnews_dam_images');
 		$this->migrateDamReferencesToFalReferences($articlesWithImagesResult, 'tt_news', 'image', array('tx_damnews_dam_images' => 'tx_falttnews_fal_images'));
 
-		$articlesWithImagesResult = $this->getRecordsWithDamConnections('tt_news', 'tx_damnews_dam_media');
-		$this->migrateDamReferencesToFalReferences($articlesWithImagesResult, 'tt_news', 'media', array('tx_damnews_dam_media' => 'tx_falttnews_fal_media'));
+		$articlesWithMediaResult = $this->getRecordsWithDamConnections('tt_news', 'tx_damnews_dam_media');
+		$this->migrateDamReferencesToFalReferences($articlesWithMediaResult, 'tt_news', 'media', array('tx_damnews_dam_media' => 'tx_falttnews_fal_media'));
 
 		return $this->getResultMessage();
 	}

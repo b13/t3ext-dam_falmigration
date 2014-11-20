@@ -22,6 +22,18 @@
 			<trans-unit id="migrationStatusMessage.referenceTableNotFound" xml:space="preserve">
 				<source>Could not find the reference table (tx_dam_mm_ref) aborting.</source>
 			</trans-unit>
+			<trans-unit id="migrationStatusHeadline.storageUpdated" xml:space="preserve">
+				<source>Storage updated</source>
+			</trans-unit>
+			<trans-unit id="migrationStatusMessage.storageUpdated" xml:space="preserve">
+				<source>The storage was updated.</source>
+			</trans-unit>
+			<trans-unit id="migrationStatusHeadline.storageUpdateFailure" xml:space="preserve">
+				<source>Storage update failure</source>
+			</trans-unit>
+			<trans-unit id="migrationStatusMessage.storageUpdateFailure" xml:space="preserve">
+				<source>Something went wrong when updating the storage.</source>
+			</trans-unit>
 			<trans-unit id="migrateCategoryRelationsCommand" xml:space="preserve">
 				<source>Migrate category relations</source>
 			</trans-unit>
@@ -77,6 +89,9 @@
 			</trans-unit>
 			<trans-unit id="allCategoriesMigrated" xml:space="preserve">
 				<source>All categories have been migrated already.</source>
+			</trans-unit>
+			<trans-unit id="upgradeStorageIndexCommand" xml:space="preserve">
+				<source>Upgrading storage index</source>
 			</trans-unit>
 			<trans-unit id="allFilesMigrated" xml:space="preserve">
 				<source>All files have been migrated already.</source>

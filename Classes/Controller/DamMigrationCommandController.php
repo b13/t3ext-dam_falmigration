@@ -424,6 +424,24 @@ class DamMigrationCommandController extends AbstractCommandController {
 	}
 
 	/**
+	 * Service to Upgrade the storage index.
+	 *
+	 * @param int $storageUid the UID of the storage (usually 1, don't modify if you are unsure)
+	 * @param int $recordLimit the amount of records to process in a single run
+	 *
+	 * @return void
+	 */
+	public function upgradeStorageIndexCommand($storageUid = 1, $recordLimit = 999999) {
+		/** @var Service\MigrateService $service */
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\UpgradeStorageIndexService', $this);
+		$service->setStorageUid((int)$storageUid);
+		$service->setRecordLimit((int)$recordLimit);
+		// Service needs re-initialization after setting properties
+		$service->initializeObject();
+		$this->outputMessage($service->execute());
+	}
+
+	/**
 	 * Migrate tt_news_categorymounts to category_pems in either be_groups or be_users
 	 *
 	 * @param string $table either be_groups or be_users

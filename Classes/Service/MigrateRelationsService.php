@@ -153,6 +153,7 @@ class MigrateRelationsService extends AbstractService {
 				$this->amountOfMigratedRecords++;
 			}
 		}
+		$this->database->sql_free_result($damRelations);
 
 		return $this->getResultMessage();
 	}

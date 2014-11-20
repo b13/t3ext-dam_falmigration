@@ -128,6 +128,7 @@ class MigrateMetadataService extends AbstractService {
 
 		$res = $this->execSelectMigratedSysFilesQuery();
 		$total = $this->database->sql_num_rows($res);
+		$counter = 0;
 
 		$this->controller->infoMessage('Found ' . $total . ' migrated sys_file records');
 
@@ -146,8 +147,9 @@ class MigrateMetadataService extends AbstractService {
 				'uid = ' . $record['file_uid'],
 				$this->createArrayForUpdateSysFileRecord($record)
 			);
-			$this->controller->message('Updating metadata of record: ' . $record['file_uid'] . ' ' . $record['file_uid']);
+			$this->controller->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total . ' id: ' . $record['file_uid']);
 			$this->amountOfMigratedRecords++;
+			$counter++;
 		}
 		$this->database->sql_free_result($res);
 
