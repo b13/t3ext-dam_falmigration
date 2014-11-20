@@ -307,7 +307,7 @@ abstract class AbstractService {
 		if ($this->amountOfMigratedRecords > 0) {
 			$headline = LocalizationUtility::translate('migrationSuccessful', 'dam_falmigration');
 			$message = LocalizationUtility::translate('migratedFiles', 'dam_falmigration', array(0 => $this->amountOfMigratedRecords));
-		} elseif ($this->amountOfMigratedRecords === 0) {
+		} elseif ($this->amountOfMigratedRecords === 0 && $status !== NULL) {
 			$headline = LocalizationUtility::translate('migrationNotNecessary', 'dam_falmigration');
 			$message = LocalizationUtility::translate('allFilesMigrated', 'dam_falmigration');
 		} elseif ($status !== NULL) {
