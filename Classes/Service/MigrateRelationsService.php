@@ -44,6 +44,11 @@ class MigrateRelationsService extends AbstractService {
 	protected $referenceIndex;
 
 	/**
+	 * @var string
+	 */
+	protected $tablename = '';
+
+	/**
 	 * main function
 	 *
 	 * @throws \Exception
@@ -184,6 +189,10 @@ class MigrateRelationsService extends AbstractService {
 	 * @return \mysqli_result
 	 */
 	protected function execSelectDamReferencesWhereSysFileExists() {
+		$where = 'tx_dam_mm_ref.tablenames <> ""';
+		if ($this->tablename !== '') {
+			$where = 'tx_dam_mm_ref.tablenames = "' . $this->tablename . '"';
+		}
 		return $this->database->exec_SELECTquery(
 			'tx_dam_mm_ref.*,
 			sys_file_metadata.title,
@@ -196,7 +205,7 @@ class MigrateRelationsService extends AbstractService {
 			JOIN sys_file_metadata ON
 				sys_file.uid = sys_file_metadata.file
 				',
-			'tx_dam_mm_ref.tablenames <> ""',
+			$where,
 			'',
 			'tx_dam_mm_ref.sorting ASC',
 			(int)$this->getRecordLimit()
@@ -233,6 +242,17 @@ class MigrateRelationsService extends AbstractService {
 	 */
 	protected function updateReferenceIndex($uid) {
 		$this->referenceIndex->updateRefIndexTable('sys_file_reference', $uid);
+	}
+
+	/**
+	 * @param string $tablename
+	 *
+	 * @return $this to allow for chaining
+	 */
+	public function setTablename($tablename) {
+		$this->tablename = $tablename;
+
+		return $this;
 	}
 
 }
