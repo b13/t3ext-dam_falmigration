@@ -61,82 +61,82 @@ class MigrateRelationsService extends AbstractService {
 			foreach ($damRelations as $damRelation) {
 				$pid = $this->getPidOfForeignRecord($damRelation);
 				$insertData = array(
-					'pid' => ($pid === NULL) ? 0 : $pid,
-					'tstamp' => time(),
-					'crdate' => time(),
-					'cruser_id' => $GLOBALS['BE_USER']->user['uid'],
-					'sorting_foreign' => $damRelation['sorting_foreign'],
-					'uid_local' => $damRelation['sys_file_uid'],
-					'uid_foreign' => $damRelation['uid_foreign'],
-					'tablenames' => $damRelation['tablenames'],
-					'fieldname' => $this->getColForFieldName($damRelation),
-					'table_local' => 'sys_file',
-					'title' => $damRelation['title'],
-					'description' => $damRelation['description'],
-					'alternative' => $damRelation['alternative'],
+						'pid' => ($pid === NULL) ? 0 : $pid,
+						'tstamp' => time(),
+						'crdate' => time(),
+						'cruser_id' => $GLOBALS['BE_USER']->user['uid'],
+						'sorting_foreign' => $damRelation['sorting_foreign'],
+						'uid_local' => $damRelation['sys_file_uid'],
+						'uid_foreign' => $damRelation['uid_foreign'],
+						'tablenames' => $damRelation['tablenames'],
+						'fieldname' => $this->getColForFieldName($damRelation),
+						'table_local' => 'sys_file',
+						'title' => $damRelation['title'],
+						'description' => $damRelation['description'],
+						'alternative' => $damRelation['alternative'],
 				);
 
 				// we need an array holding the already migrated file-relations to choose the right line of the imagecaption-field.
 				if ($insertData['tablenames'] == 'tt_content' && ($insertData['fieldname'] == 'media' || $insertData['fieldname'] == 'image')) {
-					$numberImportedRelationsByContentElement[$insertData['uid_foreign']] ++;
+					$numberImportedRelationsByContentElement[$insertData['uid_foreign']]++;
 				}
 
 				if (!$this->checkIfSysFileRelationExists($damRelation)) {
 					$this->database->exec_INSERTquery(
-						'sys_file_reference',
-						$insertData
+							'sys_file_reference',
+							$insertData
 					);
 					$newRelationsRecordUid = $this->database->sql_insert_id();
 					$this->updateReferenceIndex($newRelationsRecordUid);
 
 					// pageLayoutView-object needs image to be set something higher than 0
-					if ($damRelation['tablenames'] === 'tt_content') {
+					if ($damRelation['tablenames'] === 'tt_content' || $damRelation['tablenames'] === 'pages') {
 						if ($insertData['fieldname'] === 'image') {
 							$tcaConfig = $GLOBALS['TCA']['tt_content']['columns']['image']['config'];
 							if ($tcaConfig['type'] === 'inline') {
 								$this->database->exec_UPDATEquery(
-									'tt_content',
-									'uid = ' . $damRelation['uid_foreign'],
-									array('image' => 1)
+										'tt_content',
+										'uid = ' . $damRelation['uid_foreign'],
+										array('image' => 1)
 								);
 							}
 
 							// migrate image_links from tt_content.
 							$linkFromContentRecord = $this->database->exec_SELECTgetSingleRow(
-								'image_link,imagecaption',
-								'tt_content',
-								'uid = ' . $damRelation['uid_foreign']
+									'image_link,imagecaption',
+									'tt_content',
+									'uid = ' . $damRelation['uid_foreign']
 							);
 							if (!empty($linkFromContentRecord)) {
-								$imageLinks = explode(chr(10),$linkFromContentRecord['image_link']);
-								$imageCaptions = explode(chr(10),$linkFromContentRecord['imagecaption']);
+								$imageLinks = explode(chr(10), $linkFromContentRecord['image_link']);
+								$imageCaptions = explode(chr(10), $linkFromContentRecord['imagecaption']);
 								$this->database->exec_UPDATEquery(
-									'sys_file_reference',
-									'uid = ' . $newRelationsRecordUid,
-									array(
-										'link' => $imageLinks[$numberImportedRelationsByContentElement[$insertData['uid_foreign']]-1],
-										'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']]-1]
+										'sys_file_reference',
+										'uid = ' . $newRelationsRecordUid,
+										array(
+												'link' => $imageLinks[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1],
+												'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]
 
-									)
+										)
 								);
 							}
 						} elseif ($insertData['fieldname'] === 'media') {
 							// migrate captions from tt_content upload elements
 							$linkFromContentRecord = $this->database->exec_SELECTgetSingleRow(
-								'imagecaption',
-								'tt_content',
-								'uid = ' . $damRelation['uid_foreign']
+									'imagecaption',
+									'tt_content',
+									'uid = ' . $damRelation['uid_foreign']
 							);
 
 
 							if (!empty($linkFromContentRecord)) {
-								$imageCaptions = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(chr(10),$linkFromContentRecord['imagecaption']);
+								$imageCaptions = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(chr(10), $linkFromContentRecord['imagecaption']);
 								$this->database->exec_UPDATEquery(
-									'sys_file_reference',
-									'uid = ' . $newRelationsRecordUid,
-									array(
-										'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']]-1]
-									)
+										'sys_file_reference',
+										'uid = ' . $newRelationsRecordUid,
+										array(
+												'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]
+										)
 								);
 							}
 						}
@@ -159,9 +159,9 @@ class MigrateRelationsService extends AbstractService {
 	 */
 	protected function getPidOfForeignRecord(array $damRelation) {
 		$record = $GLOBALS['TYPO3_DB']->exec_SELECTgetSingleRow(
-			'pid',
-			$damRelation['tablenames'],
-			'uid=' . (int)$damRelation['uid_foreign']
+				'pid',
+				$damRelation['tablenames'],
+				'uid=' . (int)$damRelation['uid_foreign']
 		);
 		return $record['pid'] ?: 0;
 	}
@@ -175,11 +175,11 @@ class MigrateRelationsService extends AbstractService {
 	 */
 	protected function getDamReferencesWhereSysFileExists() {
 		$rows = $this->database->exec_SELECTgetRows(
-			'MM.*, SF.uid as sys_file_uid, MD.title, MD.description, MD.alternative',
-			'tx_dam_mm_ref MM, sys_file SF, sys_file_metadata MD',
-			'MD.file = SF.uid AND SF._migrateddamuid = MM.uid_local',
-			'',
-			'MM.sorting ASC'
+				'MM.*, SF.uid as sys_file_uid, MD.title, MD.description, MD.alternative',
+				'tx_dam_mm_ref MM, sys_file SF, sys_file_metadata MD',
+				'MD.file = SF.uid AND SF._migrateddamuid = MM.uid_local',
+				'',
+				'MM.sorting ASC'
 		);
 		if ($rows === NULL) {
 			throw new \Exception('SQL-Error in getDamReferencesWhereSysFileExists()', 1382353670);
@@ -196,13 +196,13 @@ class MigrateRelationsService extends AbstractService {
 	 */
 	protected function checkIfSysFileRelationExists(array $damRelation) {
 		$amountOfExistingRecords = $this->database->exec_SELECTcountRows(
-			'*',
-			'sys_file_reference',
-			'uid_local = ' . $damRelation['sys_file_uid'] .
-			' AND uid_foreign = ' . $damRelation['uid_foreign'] .
-			' AND tablenames = ' . $this->database->fullQuoteStr($damRelation['tablenames'], 'sys_file_reference') .
-			' AND fieldname = ' . $this->database->fullQuoteStr($this->getColForFieldName($damRelation), 'sys_file_reference') .
-			' AND deleted = 0'
+				'*',
+				'sys_file_reference',
+				'uid_local = ' . $damRelation['sys_file_uid'] .
+				' AND uid_foreign = ' . $damRelation['uid_foreign'] .
+				' AND tablenames = ' . $this->database->fullQuoteStr($damRelation['tablenames'], 'sys_file_reference') .
+				' AND fieldname = ' . $this->database->fullQuoteStr($this->getColForFieldName($damRelation), 'sys_file_reference') .
+				' AND deleted = 0'
 		);
 		if ($amountOfExistingRecords) {
 			return TRUE;
@@ -221,7 +221,9 @@ class MigrateRelationsService extends AbstractService {
 	protected function getColForFieldName(array $damRelation) {
 		if ($damRelation['tablenames'] == 'tt_content' && $damRelation['ident'] == 'tx_damttcontent_files') {
 			$fieldName = 'image';
-		} elseif ($damRelation['tablenames'] == 'tt_content'  && $damRelation['ident'] == 'tx_damttcontent_files_upload') {
+		} elseif ($damRelation['tablenames'] == 'tt_content' && $damRelation['ident'] == 'tx_damttcontent_files_upload') {
+			$fieldName = 'media';
+		} elseif ($damRelation['tablenames'] == 'pages' && $damRelation['ident'] == 'tx_dampages_files') {
 			$fieldName = 'media';
 		} else {
 			$fieldName = $damRelation['ident'];
