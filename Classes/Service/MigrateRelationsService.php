@@ -221,7 +221,7 @@ class MigrateRelationsService extends AbstractService {
 	protected function getColForFieldName(array $damRelation) {
 		if ($damRelation['tablenames'] == 'tt_content' && $damRelation['ident'] == 'tx_damttcontent_files') {
 			$fieldName = 'image';
-		} elseif ($damRelation['tablenames'] == 'tt_content' && $damRelation['ident'] == 'tx_damttcontent_files_upload') {
+		} elseif ($damRelation['tablenames'] == 'tt_content' && ($damRelation['ident'] == 'tx_damttcontent_files_upload' || $damRelation['ident'] == 'tx_damfilelinks_filelinks')) {
 			$fieldName = 'media';
 		} elseif ($damRelation['tablenames'] == 'pages' && $damRelation['ident'] == 'tx_dampages_files') {
 			$fieldName = 'media';
