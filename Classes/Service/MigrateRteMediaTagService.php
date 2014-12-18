@@ -68,20 +68,34 @@ class MigrateRteMediaTagService extends AbstractService {
 			'sys_file',
 			'_migrateddamuid = :migrateddamuid'
 		);
-
 		foreach ($records as $rec) {
 			$originalContent = $rec[$field];
 			$finalContent = $originalContent;
 			$results = array();
-			preg_match_all('/<media ([0-9]+)([^>]*)>(.*?)<\/media>/', $originalContent, $results, PREG_SET_ORDER);
+			preg_match_all('/(?:<media ([0-9]+)([^>]*)>(.*?)<\/media>|&lt;media ([0-9]+)(.*?)&gt;(.*?)&lt;\/media&gt;)/', $originalContent, $results, PREG_SET_ORDER);
 			if (count($results)) {
 				foreach ($results as $result) {
 					$searchString = $result[0];
-					$damUid = $result[1];
-					// see EXT:dam/mediatag/class.tx_dam_rtetransform_mediatag.php
-					list($linkTarget, $linkClass, $linkTitle) = explode(' ', trim($result[2]), 3);
-					$linkText = $result[3];
-					$this->parent->message('Replacing "' . $result[0] . '" with DAM UID ' . $damUid . ' (target ' . $linkTarget . '; class ' . $linkClass . '; title "' . $linkTitle . '") and linktext "' . $linkText . '"');
+					$damUid = 0;
+					$linkClass = '';
+					$linkTarget = '';
+					$linkText = '';
+					$linkTitle = '';
+					// Match for <media
+					if ((int)$result[1] > 0) {
+						$damUid = $result[1];
+						// see EXT:dam/mediatag/class.tx_dam_rtetransform_mediatag.php
+						list($linkTarget, $linkClass, $linkTitle) = explode(' ', trim($result[2]), 3);
+						$linkText = $result[3];
+					}
+					// Match for &lt;media
+					if ((int)$result[4] > 0) {
+						$damUid = $result[4];
+						// see EXT:dam/mediatag/class.tx_dam_rtetransform_mediatag.php
+						list($linkTarget, $linkClass, $linkTitle) = explode(' ', trim($result[5]), 3);
+						$linkText = $result[6];
+					}
+					$this->controller->message('Replacing "' . $result[0] . '" with DAM UID ' . $damUid . ' (target ' . $linkTarget . '; class ' . $linkClass . '; title "' . $linkTitle . '") and linktext "' . $linkText . '"');
 					/**
 					 * after migration of DAM-Records we can find sys_file-UID with help of
 					 * DAM-UID fetch the DAM uid from sys_file and replace the full tag with a
@@ -91,7 +105,7 @@ class MigrateRteMediaTagService extends AbstractService {
 					$getSysFileUidStatement->execute(array(':migrateddamuid' => (int)$damUid));
 					$falRecord = $getSysFileUidStatement->fetch();
 					if (is_array($falRecord)) {
-						$replaceString = '<link file:' . $falRecord['uid'] . ' ' . $result[2] . '>' . $linkText . '</link>';
+						$replaceString = '<link file:' . $falRecord['uid'] . ' ' . $linkTarget . ' ' . $linkClass . ' ' . $linkTitle . ' ' . '>' . $linkText . '</link>';
 						$finalContent = str_replace($searchString, $replaceString, $finalContent);
 					} else {
 						$this->parent->warningMessage('No FAL record found for dam uid: ' . $damUid);
@@ -128,7 +142,7 @@ class MigrateRteMediaTagService extends AbstractService {
 		$rows = $this->database->exec_SELECTgetRows(
 			'uid, ' . $field,
 			$table,
-			'deleted=0 AND ' . $field . ' LIKE "%<media%"'
+			'deleted=0 AND (' . $field . ' LIKE "%<media%" OR ' . $field . ' LIKE "%&lt;media%")'
 		);
 		if ($rows === NULL) {
 			throw new \Exception('Error in Query', 1383924636);
