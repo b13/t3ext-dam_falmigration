@@ -72,7 +72,7 @@ class MigrateRteMediaTagService extends AbstractService {
 			$originalContent = $rec[$field];
 			$finalContent = $originalContent;
 			$results = array();
-			preg_match_all('/(?:<media ([0-9]+)([^>]*)>(.*?)<\/media>|&lt;media ([0-9]+)(.*?)&gt;(.*?)&lt;\/media&gt;)/', $originalContent, $results, PREG_SET_ORDER);
+			preg_match_all('/(?:<media ([0-9]+)([^>]*)?>(.*?)<\/media>|&lt;media ([0-9]+)(.*?)?&gt;(.*?)&lt;\/media&gt;)/', $originalContent, $results, PREG_SET_ORDER);
 			if (count($results)) {
 				foreach ($results as $result) {
 					$searchString = $result[0];
