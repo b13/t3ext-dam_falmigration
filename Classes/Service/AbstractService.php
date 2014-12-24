@@ -39,15 +39,16 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 abstract class AbstractService {
 
 	/**
-	 * @inject
 	 * @var \TYPO3\CMS\Extbase\Object\ObjectManager
+	 * @inject
 	 */
 	protected $objectManager;
 
 	/**
-	 * @var DamMigrationCommandController $parent Used to log output to console
+	 * @var \B13\DamFalmigration\Controller\DamMigrationCommandController
+	 *    $controller Used to log output to console
 	 */
-	protected $parent;
+	protected $controller;
 
 	/**
 	 * @var \TYPO3\CMS\Core\Database\DatabaseConnection
@@ -55,15 +56,20 @@ abstract class AbstractService {
 	protected $database;
 
 	/**
-	 * @inject
+	 * @var array
+	 */
+	protected $fieldMapping = array();
+
+	/**
 	 * @var \TYPO3\CMS\Core\Resource\FileRepository
+	 * @inject
 	 */
 	protected $fileRepository;
 
 	/**
 	 * @var integer
 	 */
-	private $recordLimit = 10000;
+	private $recordLimit = 999999;
 
 	/**
 	 * @var string
@@ -84,6 +90,15 @@ abstract class AbstractService {
 	 * @var integer amount of migrated records
 	 */
 	protected $amountOfMigratedRecords = 0;
+
+	/**
+	 * initializes this object
+	 *
+	 * @param \B13\DamFalmigration\Controller\DamMigrationCommandController $controller
+	 */
+	public function __construct(DamMigrationCommandController $controller = NULL) {
+		$this->setController($controller);
+	}
 
 	/**
 	 * initializes this object
@@ -111,6 +126,20 @@ abstract class AbstractService {
 		$tables = $this->database->admin_get_tables();
 
 		return array_key_exists($table, $tables);
+	}
+
+	/**
+	 * check if given field exists in a table
+	 *
+	 * @param string $field
+	 * @param string $table
+	 *
+	 * @return bool
+	 */
+	protected function isFieldAvailable($field, $table) {
+		$tables = $this->database->admin_get_fields($table);
+
+		return array_key_exists($field, $tables);
 	}
 
 	/**
@@ -160,7 +189,7 @@ abstract class AbstractService {
 	protected function migrateDamReferencesToFalReferences($result, $table, $type, $fieldnameMapping = array()) {
 		$counter = 0;
 		$total = $this->database->sql_num_rows($result);
-		$this->parent->infoMessage('Found ' . $total . ' ' . $table . ' records with a dam ' . $type);
+		$this->controller->infoMessage('Found ' . $total . ' ' . $table . ' records with a dam ' . $type);
 		while ($record = $this->database->sql_fetch_assoc($result)) {
 			$identifier = $this->getFullFileName($record);
 
@@ -175,30 +204,35 @@ abstract class AbstractService {
 				try {
 					GeneralUtility::mkdir_deep(PATH_site . $this->storageBasePath . dirname($identifier));
 				} catch (\Exception $e) {
-					$this->parent->errorMessage('Unable to create directory: ' . PATH_site . $this->storageBasePath . $identifier);
+					$this->controller->errorMessage('Unable to create directory: ' . PATH_site . $this->storageBasePath . $identifier);
 					continue;
 				}
-				$this->parent->infoMessage('Creating empty missing file: ' . PATH_site . $this->storageBasePath . $identifier);
-				try {
-					GeneralUtility::writeFile(PATH_site . $this->storageBasePath . $identifier, '');
-				} catch (\Exception $e) {
-					$this->parent->errorMessage('Unable to create file: ' . PATH_site . $this->storageBasePath . $identifier, '');
+
+				$config = $this->controller->getConfiguration();
+				if (isset($config['createMissingFiles']) && (int)$config['createMissingFiles']) {
+					$this->controller->infoMessage('Creating empty missing file: ' . PATH_site . $this->storageBasePath . $identifier);
+					try {
+						GeneralUtility::writeFile(PATH_site . $this->storageBasePath . $identifier, '');
+					} catch (\Exception $e) {
+						$this->controller->errorMessage('Unable to create file: ' . PATH_site . $this->storageBasePath . $identifier);
+						continue;
+					}
+				} else {
+					$this->controller->errorMessage('File not found: ' . PATH_site . $this->storageBasePath . $identifier);
 					continue;
 				}
 				$fileObject = $this->storageObject->getFile($identifier);
 			}
 			if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
 				if ($fileObject->isMissing()) {
-					$this->parent->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $record['uid'] . ': "' . $identifier . '"');
+					$this->controller->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $record['uid'] . ': "' . $identifier . '"');
 					continue;
 				}
 
 				$record['uid_local'] = $fileObject->getUid();
-				if (count($fieldnameMapping)) {
-					foreach ($fieldnameMapping as $old => $new) {
-						if ($record['ident'] === $old) {
-							$record['ident'] = $new;
-						}
+				foreach ($fieldnameMapping as $old => $new) {
+					if ($record['ident'] === $old) {
+						$record['ident'] = $new;
 					}
 				}
 
@@ -206,6 +240,9 @@ abstract class AbstractService {
 				if (!$this->doesFileReferenceExist($record)) {
 
 					$insertData = array(
+						'tstamp' => time(),
+						'crdate' => time(),
+						'cruser_id' => $GLOBALS['BE_USER']->user['uid'],
 						'uid_local' => $record['uid_local'],
 						'uid_foreign' => (int)$record['uid_foreign'],
 						'sorting' => (int)$record['sorting'],
@@ -221,9 +258,9 @@ abstract class AbstractService {
 						$insertData
 					);
 					$this->amountOfMigratedRecords++;
-					$this->parent->message($progress . ' Migrating relation for ' . (string)$record['tablenames'] . ' uid: ' . $record['item_uid'] . ' dam uid: ' . $record['dam_uid'] . ' to fal uid: ' . $record['uid_local']);
+					$this->controller->message($progress . ' Migrating relation for ' . (string)$record['tablenames'] . ' uid: ' . $record['item_uid'] . ' dam uid: ' . $record['dam_uid'] . ' to fal uid: ' . $record['uid_local']);
 				} else {
-					$this->parent->message($progress . ' Reference already exists.');
+					$this->controller->message($progress . ' Reference already exists for uid: ' . (int)$record['item_uid']);
 				}
 			}
 		}
@@ -245,7 +282,8 @@ abstract class AbstractService {
 			' AND uid_foreign = ' . $fileReference['uid_foreign'] .
 			' AND tablenames = "' . $fileReference['tablenames'] . '"' .
 			' AND fieldname = "' . $fileReference['ident'] . '"' .
-			' AND table_local = "sys_file"'
+			' AND table_local = "sys_file"' .
+			' AND deleted = 0'
 		);
 	}
 
@@ -274,20 +312,30 @@ abstract class AbstractService {
 	/**
 	 * add flashmessage if migration was successful or not.
 	 *
+	 * @param null $status
+	 * @param null $message Additional message body to pass along with a status
+	 *
 	 * @return FlashMessage
 	 */
-	protected function getResultMessage() {
+	protected function getResultMessage($status = NULL, $message = NULL) {
+		$headline = LocalizationUtility::translate('nothingToSeeHere', 'dam_falmigration');
+		if ($message === NULL) {
+			$message = LocalizationUtility::translate('moveAlong', 'dam_falmigration');
+		}
 		if ($this->amountOfMigratedRecords > 0) {
 			$headline = LocalizationUtility::translate('migrationSuccessful', 'dam_falmigration');
 			$message = LocalizationUtility::translate('migratedFiles', 'dam_falmigration', array(0 => $this->amountOfMigratedRecords));
-		} else {
-			$headline = LocalizationUtility::translate('migrationNotNecessary', 'dam_falmigration');;
+		} elseif ($this->amountOfMigratedRecords === 0 && $status !== NULL) {
+			$headline = LocalizationUtility::translate('migrationNotNecessary', 'dam_falmigration');
 			$message = LocalizationUtility::translate('allFilesMigrated', 'dam_falmigration');
+		} elseif ($status !== NULL) {
+			$headline = LocalizationUtility::translate('migrationStatusHeadline.' . $status, 'dam_falmigration');
+			if ($message === NULL) {
+				$message = LocalizationUtility::translate('migrationStatusMessage' . $status, 'dam_falmigration');
+			}
 		}
 
-		$messageObject = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
-
-		return $messageObject;
+		return GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Messaging\\FlashMessage', $message, $headline);
 	}
 
 	/**
@@ -331,13 +379,35 @@ abstract class AbstractService {
 	}
 
 	/**
-	 * @param DamMigrationCommandController $parent
+	 * @param DamMigrationCommandController $controller
 	 *
 	 * @return $this to allow for chaining
 	 */
-	public function setParent($parent) {
-		$this->parent = $parent;
+	public function setController($controller) {
+		$this->controller = $controller;
 
 		return $this;
+	}
+
+	/**
+	 * Update reference counters for given table and fieldmapping
+	 *
+	 * @param string $table
+	 *
+	 * @return void
+	 */
+	protected function updateReferenceCounters($table) {
+		$set = array();
+		$this->controller->successMessage(LocalizationUtility::translate('updateReferenceCounters', 'dam_falmigration'));
+		foreach ($this->fieldMapping as $old => $new) {
+			if ($this->isFieldAvailable($new, $table)) {
+				$set[] = $new . ' = ' . $old;
+			}
+		}
+		if (count($set)) {
+			$this->database->sql_query(
+				'UPDATE ' . $table . ' SET ' . implode(',', $set)
+			);
+		}
 	}
 }

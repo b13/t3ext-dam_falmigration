@@ -51,45 +51,41 @@ class MigrateCategoryRelationsService extends AbstractService {
 	/**
 	 * main function, returns a FlashMessge
 	 *
-	 * @param \B13\DamFalmigration\Controller\DamMigrationCommandController $parent Used
-	 *    to log output to console
-	 *
 	 * @throws \Exception
 	 *
 	 * @return FlashMessage
 	 */
-	public function execute($parent) {
-		$this->setParent($parent);
-		$this->parent->headerMessage(LocalizationUtility::translate('migrateCategoryRelationsCommand', 'dam_falmigration'));
-		if ($this->isTableAvailable('tx_dam_mm_ref')) {
-			$categoryRelations = $this->getCategoryRelationsWhereSysCategoryExists();
-			$this->parent->infoMessage('Found ' . count($categoryRelations) . ' relations');
-			foreach ($categoryRelations as $categoryRelation) {
-				$insertData = array(
-					'uid_local' => $categoryRelation['sys_category_uid'],
-					'uid_foreign' => $categoryRelation['sys_metadata_uid'],
-					'sorting' => $categoryRelation['sorting'],
-					'sorting_foreign' => $categoryRelation['sorting_foreign'],
-					'tablenames' => 'sys_file_metadata',
-					'fieldname' => 'categories'
-				);
-
-				if (!$this->checkIfSysCategoryRelationExists($categoryRelation)) {
-					$this->database->exec_INSERTquery(
-						'sys_category_record_mm',
-						$insertData
-					);
-					$this->amountOfMigratedRecords++;
-					$this->parent->message('Migrating relation for category ' . $categoryRelation['sys_category_uid']);
-				} else {
-					$this->parent->message('Relation already migrated.');
-				}
-			}
-
-			return $this->getResultMessage();
-		} else {
-			$this->parent->errorMessage('Table tx_dam_mm_ref not found. So there is nothing to migrate.');
+	public function execute() {
+		$this->controller->headerMessage(LocalizationUtility::translate('migrateCategoryRelationsCommand', 'dam_falmigration'));
+		if (!$this->isTableAvailable('tx_dam_mm_ref')) {
+			return $this->getResultMessage('referenceTableNotFound');
 		}
+
+		$categoryRelations = $this->getCategoryRelationsWhereSysCategoryExists();
+		$this->controller->infoMessage('Found ' . count($categoryRelations) . ' relations');
+		foreach ($categoryRelations as $categoryRelation) {
+			$insertData = array(
+				'uid_local' => $categoryRelation['sys_category_uid'],
+				'uid_foreign' => $categoryRelation['sys_metadata_uid'],
+				'sorting' => $categoryRelation['sorting'],
+				'sorting_foreign' => $categoryRelation['sorting_foreign'],
+				'tablenames' => 'sys_file_metadata',
+				'fieldname' => 'categories'
+			);
+
+			if (!$this->checkIfSysCategoryRelationExists($categoryRelation)) {
+				$this->database->exec_INSERTquery(
+					'sys_category_record_mm',
+					$insertData
+				);
+				$this->amountOfMigratedRecords++;
+				$this->controller->message('Migrating relation for category ' . $categoryRelation['sys_category_uid']);
+			} else {
+				$this->controller->message('Relation already migrated.');
+			}
+		}
+
+		return $this->getResultMessage();
 	}
 
 	/**
