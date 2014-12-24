@@ -30,10 +30,10 @@ commands that may be available, use::
 
 The following reference was automatically generated from code on 24-12-14
 
-.. contents:: Available Migration Tasks
-:local:
+.. contents:: Available Migration Commands
+  :local:
   :depth: 1
-    :backlinks: top
+  :backlinks: top
 
 
 
@@ -41,8 +41,9 @@ The following reference was automatically generated from code on 24-12-14
 dam_falmigration:dammigration:cleanupduplicatefalcollectionreferences
 *********************************************************************
 
-**Checks if there are multiple entries in sys_file_reference that contain the same uid_local and uid_foreign with sys_file_collection references and removes the duplicates**
+**Cleanup duplicate FAL collection references**
 
+Checks if there are multiple entries in sys_file_reference that contain the same uid_local and uid_foreign with sys_file_collection references and removes the duplicates
 NOTE: this command is usually *NOT* necessary, but only if something
 went wrong
 
@@ -55,9 +56,9 @@ went wrong
 dam_falmigration:dammigration:migratecategoryrelations
 ******************************************************
 
-**Migrate DAM Category Relations**
+**Migrate Relations to DAM Categories**
 
-it is highly recommended to update the ref index afterwards
+It is highly recommended to update the reference index afterwards.
 
 
 
@@ -65,7 +66,7 @@ Options
 ^^^^^^^
 
 ``--record-limit``
-  the amount of records to process in a single run
+  The amount of records to process in a single run. You can set this value if you have memory constraints.
 
 
 
@@ -78,15 +79,15 @@ dam_falmigration:dammigration:migratedamcategories
 
 
 
-Arguments
-^^^^^^^^^
+
+
+Options
+^^^^^^^
 
 ``--initial-parent-uid``
-  Initial parent UID
+  The id of a sys_category record to use as the root category.
 ``--storage-pid``
-  Store on PID
-
-
+  Page id to store created categories on.
 
 
 
@@ -109,7 +110,7 @@ Options
 ``--file-collection-storage-pid``
   The page id on which to store the collections
 ``--migrate-references``
-  whether just the categories should be migrated or the references as well
+  Besides migrating the collections, the references are migrated as well. Default: TRUE
 
 
 
@@ -118,9 +119,9 @@ Options
 dam_falmigration:dammigration:migratedamfrontendplugins
 *******************************************************
 
-**migrate all damfrontend_pi1 plugins to tt_content.uploads with file_collection usually used in conjunction with / after migrateDamCategoriesToFalCollectionsCommand()**
+**Migrate dam frontend plugins**
 
-
+Migrate all damfrontend_pi1 plugins to tt_content.uploads with file_collection. Usually used in conjunction with or after migrateDamCategoriesToFalCollectionsCommand().
 
 
 
@@ -131,9 +132,9 @@ dam_falmigration:dammigration:migratedamfrontendplugins
 dam_falmigration:dammigration:migratedammetadata
 ************************************************
 
-**Migrates DAM metadata to FAL metadata. Searches for all migrated sys_file records that don't have any titles yet.**
+**Migrates DAM metadata to FAL metadata.**
 
-
+Searches for all migrated sys_file records that don't have any titles yet.
 
 
 
@@ -144,9 +145,9 @@ dam_falmigration:dammigration:migratedammetadata
 dam_falmigration:dammigration:migratedamrecords
 ***********************************************
 
-**Migrates all DAM records to FAL. A DB field &quot;_migrateddamuid&quot; connects each FAL record to the original DAM record.**
+**Migrates all DAM records to FAL.**
 
-
+A database field "_migrateddamuid" connects each FAL record to the original DAM record.
 
 
 
@@ -154,9 +155,9 @@ Options
 ^^^^^^^
 
 ``--storage-uid``
-  the UID of the storage (usually 1, don't modify if you are unsure)
+  The UID of the storage (default: 1 Do not modify if you are unsure.)
 ``--record-limit``
-  the amount of records to process in a single run
+  The amount of records to process in a single run. You can set this value if you have memory constraints.
 
 
 
@@ -167,7 +168,7 @@ dam_falmigration:dammigration:migratedamttnews
 
 **Migrates tt_news records enriched with DAM fields to FAL.**
 
-It is highly recommended to update the ref index afterwards
+It is highly recommended to update the ref index afterwards.
 
 
 
@@ -175,7 +176,7 @@ Options
 ^^^^^^^
 
 ``--storage-uid``
-  the UID of the storage (usually 1, don't modify if you are unsure)
+  The UID of the storage (default: 1 Do not modify if you are unsure.)
 
 
 
@@ -184,9 +185,9 @@ Options
 dam_falmigration:dammigration:migratemediatagsinrte
 ***************************************************
 
-**Migrates the &lt;media DAM_UID target title&gt;Linktext&lt;/media&gt; to &lt;link file:29643 - download&gt;Linktext&lt;/link&gt;**
+**Migrate RTE media tags**
 
-
+Migrates the ``<media DAM_UID target title>Linktext</media>`` to ``<link file:29643 - download>Linktext</link>``
 
 
 
@@ -194,9 +195,9 @@ Options
 ^^^^^^^
 
 ``--table``
-  the table to look for
+  The table to work on. Default: `tt_content`.
 ``--field``
-  the DB field to look for
+  The field to work on. Default: `bodytext`.
 
 
 
@@ -205,9 +206,11 @@ Options
 dam_falmigration:dammigration:migraterelations
 **********************************************
 
-**migrate relations to dam records that dam_ttcontent and dam_uploads introduced**
+**Migrate relations to DAM records**
 
-it is highly recommended to update the ref index afterwards
+Migrate relations to dam records that dam_ttcontent and dam_uploads introduced.
+
+It is highly recommended to update the ref index afterwards.
 
 
 
@@ -224,9 +227,11 @@ Options
 dam_falmigration:dammigration:migrateselections
 ***********************************************
 
-**Migrates all available DAM Selections in sys_file_collections (only folder based selections for now).**
+**Migrate DAM selections**
 
-it is highly recommended to update the ref index afterwards
+Migrates all available DAM Selections in sys_file_collections (only folder based selections for now).
+
+It is highly recommended to update the ref index afterwards.
 
 
 
@@ -237,7 +242,7 @@ it is highly recommended to update the ref index afterwards
 dam_falmigration:dammigration:updatereferenceindex
 **************************************************
 
-**updates the reference index**
+**Updates the reference index**
 
 
 
@@ -250,7 +255,7 @@ dam_falmigration:dammigration:updatereferenceindex
 dam_falmigration:dammigration:upgradestorageindex
 *************************************************
 
-**Service to Upgrade the storage index.**
+**Upgrade the storage index.**
 
 
 
@@ -260,9 +265,9 @@ Options
 ^^^^^^^
 
 ``--storage-uid``
-  the UID of the storage (usually 1, don't modify if you are unsure)
+  The UID of the storage (default: 1 Do not modify if you are unsure.)
 ``--record-limit``
-  the amount of records to process in a single run
+  The amount of records to process in a single run. You can set this value if you have memory constraints.
 
 
 
