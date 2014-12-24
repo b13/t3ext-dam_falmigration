@@ -87,7 +87,7 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 *
 	 * @return void
 	 */
-	public function migrateDamCategoriesCommand($initialParentUid = 0, $storagePid) {
+	public function migrateDamCategoriesCommand($initialParentUid = 0, $storagePid = 1) {
 		$this->headerMessage(LocalizationUtility::translate('migrateDamCategoriesCommand', 'dam_falmigration'));
 		$databaseHelper = \B13\DamFalmigration\Helper\DatabaseHelper::getInstance();
 		if ($databaseHelper->isTableAvailable('tx_dam_cat')) {
@@ -143,10 +143,8 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 * as a pre-requisite, there needs to be sys_file records that
 	 * have been migrated from DAM
 	 *
-	 * @param integer $fileCollectionStoragePid The page id on which to store
-	 *    the collections
-	 * @param bool|string $migrateReferences whether just the categories should
-	 *    be migrated or the references as well
+	 * @param integer $fileCollectionStoragePid The page id on which to store the collections
+	 * @param bool|string $migrateReferences whether just the categories should be migrated or the references as well
 	 *
 	 * @return void
 	 */

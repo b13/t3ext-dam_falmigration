@@ -57,6 +57,7 @@ DAM to FAL migration
 
 		Installation/Index
 		UserManual/Index
+		CommandReference/Index
 		Changelog/Index
 
 .. only:: latex
@@ -68,4 +69,5 @@ DAM to FAL migration
 
 		Installation/Index
 		UserManual/Index
+		CommandReference/Index
 		Changelog/Index
