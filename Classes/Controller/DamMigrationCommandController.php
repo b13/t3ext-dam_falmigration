@@ -37,10 +37,11 @@ use TYPO3\CMS\DamFalmigration\Service;
 class DamMigrationCommandController extends AbstractCommandController {
 
 	/**
-	 * Migrates all DAM records to FAL. A DB field "_migrateddamuid" connects each FAL record to the original DAM record.
+	 * Migrates all DAM records to FAL.
+	 * A database field "_migrateddamuid" connects each FAL record to the original DAM record.
 	 *
-	 * @param int $storageUid the UID of the storage (usually 1, don't modify if you are unsure)
-	 * @param int $recordLimit the amount of records to process in a single run
+	 * @param int $storageUid The UID of the storage (default: 1 Do not modify if you are unsure.)
+	 * @param int $recordLimit The amount of records to process in a single run. You can set this value if you have memory constraints.
 	 *
 	 * @return void
 	 */
@@ -55,7 +56,8 @@ class DamMigrationCommandController extends AbstractCommandController {
 	}
 
 	/**
-	 * Migrates DAM metadata to FAL metadata. Searches for all migrated sys_file records that don't have any titles yet.
+	 * Migrates DAM metadata to FAL metadata.
+	 * Searches for all migrated sys_file records that don't have any titles yet.
 	 *
 	 * @return void
 	 */
@@ -66,10 +68,11 @@ class DamMigrationCommandController extends AbstractCommandController {
 	}
 
 	/**
-	 * Migrates the <media DAM_UID target title>Linktext</media> to <link file:29643 - download>Linktext</link>
+	 * Migrate RTE media tags
+	 * Migrates the ``<media DAM_UID target title>Linktext</media>`` to ``<link file:29643 - download>Linktext</link>``
 	 *
-	 * @param string $table the table to look for
-	 * @param string $field the DB field to look for
+	 * @param string $table The table to work on. Default: `tt_content`.
+	 * @param string $field The field to work on. Default: `bodytext`.
 	 *
 	 * @return void
 	 */
@@ -82,8 +85,8 @@ class DamMigrationCommandController extends AbstractCommandController {
 	/**
 	 * Migrate DAM categories to FAL categories
 	 *
-	 * @param integer $initialParentUid Initial parent UID
-	 * @param integer $storagePid Store on PID
+	 * @param integer $initialParentUid The id of a sys_category record to use as the root category.
+	 * @param integer $storagePid Page id to store created categories on.
 	 *
 	 * @return void
 	 */
@@ -144,7 +147,7 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 * have been migrated from DAM
 	 *
 	 * @param integer $fileCollectionStoragePid The page id on which to store the collections
-	 * @param bool|string $migrateReferences whether just the categories should be migrated or the references as well
+	 * @param bool $migrateReferences Besides migrating the collections, the references are migrated as well. Default: TRUE
 	 *
 	 * @return void
 	 */
@@ -249,11 +252,11 @@ class DamMigrationCommandController extends AbstractCommandController {
 	}
 
 	/**
-	 * Migrate DAM Category Relations
+	 * Migrate Relations to DAM Categories
 	 *
-	 * it is highly recommended to update the ref index afterwards
+	 * It is highly recommended to update the reference index afterwards.
 	 *
-	 * @param int $recordLimit the amount of records to process in a single run
+	 * @param int $recordLimit The amount of records to process in a single run. You can set this value if you have memory constraints.
 	 *
 	 * @return void
 	 */
@@ -267,7 +270,9 @@ class DamMigrationCommandController extends AbstractCommandController {
 	}
 
 	/**
-	 * migrate all damfrontend_pi1 plugins to tt_content.uploads with file_collection usually used in conjunction with / after migrateDamCategoriesToFalCollectionsCommand()
+	 * Migrate dam frontend plugins
+	 *
+	 * Migrate all damfrontend_pi1 plugins to tt_content.uploads with file_collection. Usually used in conjunction with or after migrateDamCategoriesToFalCollectionsCommand().
 	 *
 	 * @return void
 	 */
@@ -334,6 +339,7 @@ class DamMigrationCommandController extends AbstractCommandController {
 
 
 	/**
+	 * Cleanup duplicate FAL collection references
 	 * Checks if there are multiple entries in sys_file_reference that contain the same uid_local and uid_foreign with sys_file_collection references and removes the duplicates
 	 * NOTE: this command is usually *NOT* necessary, but only if something
 	 * went wrong
@@ -365,7 +371,7 @@ class DamMigrationCommandController extends AbstractCommandController {
 	}
 
 	/**
-	 * updates the reference index
+	 * Updates the reference index
 	 *
 	 * @return void
 	 */
@@ -378,9 +384,10 @@ class DamMigrationCommandController extends AbstractCommandController {
 	}
 
 	/**
-	 * migrate relations to dam records that dam_ttcontent and dam_uploads introduced
+	 * Migrate relations to DAM records
+	 * Migrate relations to dam records that dam_ttcontent and dam_uploads introduced.
 	 *
-	 * it is highly recommended to update the ref index afterwards
+	 * It is highly recommended to update the ref index afterwards.
 	 *
 	 * @param string $tablename The tablename to migrate relations for
 	 *
@@ -396,9 +403,10 @@ class DamMigrationCommandController extends AbstractCommandController {
 	}
 
 	/**
+	 * Migrate DAM selections
 	 * Migrates all available DAM Selections in sys_file_collections (only folder based selections for now).
 	 *
-	 * it is highly recommended to update the ref index afterwards
+	 * It is highly recommended to update the ref index afterwards.
 	 *
 	 * @return void
 	 */
@@ -411,9 +419,9 @@ class DamMigrationCommandController extends AbstractCommandController {
 	/**
 	 * Migrates tt_news records enriched with DAM fields to FAL.
 	 *
-	 * It is highly recommended to update the ref index afterwards
+	 * It is highly recommended to update the ref index afterwards.
 	 *
-	 * @param int $storageUid the UID of the storage (usually 1, don't modify if you are unsure)
+	 * @param int $storageUid The UID of the storage (default: 1 Do not modify if you are unsure.)
 	 *
 	 * @return void
 	 */
@@ -427,10 +435,10 @@ class DamMigrationCommandController extends AbstractCommandController {
 	}
 
 	/**
-	 * Service to Upgrade the storage index.
+	 * Upgrade the storage index.
 	 *
-	 * @param int $storageUid the UID of the storage (usually 1, don't modify if you are unsure)
-	 * @param int $recordLimit the amount of records to process in a single run
+	 * @param int $storageUid The UID of the storage (default: 1 Do not modify if you are unsure.)
+	 * @param int $recordLimit The amount of records to process in a single run. You can set this value if you have memory constraints.
 	 *
 	 * @return void
 	 */
@@ -445,9 +453,11 @@ class DamMigrationCommandController extends AbstractCommandController {
 	}
 
 	/**
-	 * Migrate tt_news_categorymounts to category_pems in either be_groups or be_users
+	 * Migrate category mounts
 	 *
-	 * @param string $table either be_groups or be_users
+	 * Migrate category mounts to category_pems in either be_groups or be_users.
+	 *
+	 * @param string $table The table to work on. Either be_groups or be_users.
 	 *
 	 * @return void
 	 */
