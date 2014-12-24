@@ -22,7 +22,6 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  */
-use B13\DamFalmigration\Controller\DamMigrationCommandController;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
@@ -36,18 +35,14 @@ class MigrateSelectionsService extends AbstractService {
 	/**
 	 * main function, returns a FlashMessge
 	 *
-	 * @param DamMigrationCommandController $parent Used to log output to
-	 *    console
-	 *
 	 * @return FlashMessage
 	 */
-	public function execute($parent) {
-		$this->setParent($parent);
-		$this->parent->headerMessage(LocalizationUtility::translate('migrateSelectionsCommand', 'dam_falmigration'));
+	public function execute() {
+		$this->controller->headerMessage(LocalizationUtility::translate('migrateSelectionsCommand', 'dam_falmigration'));
 
 		$damSelections = $this->getNotMigratedDamSelections();
 
-		$this->parent->infoMessage('Found ' . count($damSelections) . ' selections');
+		$this->controller->infoMessage('Found ' . count($damSelections) . ' selections');
 
 		// search for txdamFolder and create new folder based sys_file_collection
 		foreach ($damSelections as $damSelection) {
@@ -72,11 +67,11 @@ class MigrateSelectionsService extends AbstractService {
 				);
 				$this->database->exec_INSERTquery('sys_file_collection', $sysFileCollection);
 
-				$this->parent->message('Migrating selection ' . $damSelection['uid']);
+				$this->controller->message('Migrating selection ' . $damSelection['uid']);
 
 				$this->amountOfMigratedRecords++;
 			} else {
-				$this->parent->warningMessage('Empty selection found');
+				$this->controller->warningMessage('Empty selection found');
 			}
 		}
 

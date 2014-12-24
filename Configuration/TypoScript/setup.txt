@@ -1,4 +1,6 @@
 module.tx_damfalmigration {
 	settings {
+		// Create empty missing files to avoid fatal errors during migration?
+		createMissingFiles = 1
 	}
 }

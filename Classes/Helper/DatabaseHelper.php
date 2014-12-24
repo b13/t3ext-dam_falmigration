@@ -109,10 +109,21 @@ class DatabaseHelper {
 	public function getAllNotYetMigratedDamCategoriesWithItemCount() {
 		// this query can also count all related categories (sys_category.items)
 		$damCategories = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
-			'uid, parent_id, tstamp, sorting, crdate, cruser_id, hidden, title, description, (SELECT COUNT(*) FROM tx_dam_mm_cat WHERE tx_dam_mm_cat.uid_foreign = tx_dam_cat.uid) as items',
+			'uid,
+			parent_id,
+			tstamp,
+			sorting,
+			crdate,
+			cruser_id,
+			hidden,
+			title,
+			description,
+			(SELECT COUNT(*) FROM tx_dam_mm_cat WHERE tx_dam_mm_cat.uid_foreign = tx_dam_cat.uid AND tx_dam_cat.deleted = 0) as items',
 			'tx_dam_cat',
 			'deleted = 0',
-			'', 'parent_id', ''
+			'',
+			'parent_id',
+			''
 		);
 
 		// fetch all already imported sys_categories

@@ -22,7 +22,6 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *
  *  This copyright notice MUST APPEAR in all copies of the script!
  */
-use B13\DamFalmigration\Controller\DamMigrationCommandController;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -40,6 +39,11 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
  * @author Benjamin Mack <benni@typo3.org>
  */
 class MigrateService extends AbstractService {
+
+	/**
+	 * @var integer
+	 */
+	protected $currentTime;
 
 	/**
 	 * how to map cols for meta data
@@ -74,6 +78,11 @@ class MigrateService extends AbstractService {
 	);
 
 	/**
+	 * @var array
+	 */
+	protected $columnMapping = array();
+
+	/**
 	 * saves the amount of files which could not be found in storage
 	 *
 	 * @var integer
@@ -84,57 +93,55 @@ class MigrateService extends AbstractService {
 	 * main function, needs to return TRUE or FALSE in order to tell
 	 * the scheduler whether the task went through smoothly
 	 *
-	 * @param DamMigrationCommandController $parent Used to log output to
-	 *    console
-	 *
 	 * @throws \TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException
 	 * @throws \Exception
 	 * @return FlashMessage
 	 */
-	public function execute($parent) {
-		$this->setParent($parent);
-		$this->parent->headerMessage(LocalizationUtility::translate('connectDamRecordsWithSysFileCommand', 'dam_falmigration', array($this->storageObject->getName())));
-		if ($this->isTableAvailable('tx_dam')) {
+	public function execute() {
+		$this->controller->headerMessage(LocalizationUtility::translate('connectDamRecordsWithSysFileCommand', 'dam_falmigration', array($this->storageObject->getName())));
+		if (!$this->isTableAvailable('tx_dam')) {
+			return $this->getResultMessage('damTableNotFound');
+		}
 
-			$res = $this->execSelectNotMigratedDamRecordsQuery();
+		$result = $this->execSelectNotMigratedDamRecordsQuery();
 
-			$counter = 0;
-			$total = $this->database->sql_num_rows($res);
-			$this->parent->infoMessage('Found ' . $total . ' DAM records without a connection to a sys_file entry');
+		$counter = 0;
+		$total = $this->database->sql_num_rows($result);
+		$this->controller->infoMessage('Found ' . $total . ' DAM records without a connection to a sys_file entry');
 
-			while ($damRecord = $this->database->sql_fetch_assoc($res)) {
-				$counter++;
-				if ($this->isValidDirectory($damRecord)) {
-					try {
-						$fullFileName = $this->getFullFileName($damRecord);
+		$this->initializeColumnMapping();
 
-						$fileObject = $this->storageObject->getFile($fullFileName);
-						if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
-							if ($fileObject->isMissing()) {
-								$this->parent->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $damRecord['uid'] . ': "' . $fullFileName . '"');
-								continue;
-							}
-							$this->parent->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total . ' id: ' . $damRecord['uid'] . ': ' . $fullFileName);
-							$this->migrateFileFromDamToFal($damRecord, $fileObject);
-							$this->amountOfMigratedRecords++;
+		while ($damRecord = $this->database->sql_fetch_assoc($result)) {
+			$this->currentTime = time();
+			$counter++;
+			if ($this->isValidDirectory($damRecord)) {
+				try {
+					$fullFileName = $this->getFullFileName($damRecord);
+
+					$fileObject = $this->storageObject->getFile($fullFileName);
+					if ($fileObject instanceof \TYPO3\CMS\Core\Resource\File) {
+						if ($fileObject->isMissing()) {
+							$this->controller->warningMessage('FAL did not find any file resource for DAM record. DAM uid: ' . $damRecord['uid'] . ': "' . $fullFileName . '"');
+							continue;
 						}
-					} catch (\Exception $e) {
-						// If file is not found
-						$this->setDamFileMissingByUid($damRecord['uid']);
-						$this->parent->warningMessage($e->getMessage());
-						$this->amountOfFilesNotFound++;
-						continue;
+						$this->controller->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total . ' id: ' . $damRecord['uid'] . ': ' . $fullFileName);
+						$this->migrateFileFromDamToFal($damRecord, $fileObject);
+						$this->amountOfMigratedRecords++;
 					}
+				} catch (\Exception $e) {
+					// If file is not found
+					$this->setDamFileMissingByUid($damRecord['uid']);
+					$this->controller->warningMessage($e->getMessage());
+					$this->amountOfFilesNotFound++;
+					continue;
 				}
 			}
-			$this->database->sql_free_result($res);
-
-			$this->parent->message(
-				'Not migrated dam records at start of task: ' . $total . '. Migrated files after task: ' . $this->amountOfMigratedRecords . '. Files not found: ' . $this->amountOfFilesNotFound . '.'
-			);
-		} else {
-			$this->parent->errorMessage('Extension tx_dam is not installed. So there is nothing to migrate.');
 		}
+		$this->database->sql_free_result($result);
+
+		$this->controller->message(
+			'Not migrated dam records at start of task: ' . $total . '. Migrated files after task: ' . $this->amountOfMigratedRecords . '. Files not found: ' . $this->amountOfFilesNotFound . '.'
+		);
 
 		return $this->getResultMessage();
 	}
@@ -179,8 +186,10 @@ class MigrateService extends AbstractService {
 			'sys_file.uid IS NULL AND
 			 tx_dam.deleted = 0 AND
 			 tx_dam.file_path LIKE "' . $this->storageBasePath . '%" AND
-			 tx_dam._missingfile = 0
-			 LIMIT ' . (int)$this->getRecordLimit()
+			 tx_dam._missingfile = 0',
+			'',
+			'',
+			(int)$this->getRecordLimit()
 		);
 	}
 
@@ -237,21 +246,32 @@ class MigrateService extends AbstractService {
 	 */
 	protected function createArrayForUpdateInsertSysFileRecord(array $damRecord) {
 		$updateData = array(
-			'tstamp' => time(),
+			'tstamp' => $this->currentTime,
 		);
 
+		foreach ($this->columnMapping as $damColName => $metaColName) {
+			$updateData[$metaColName] = $damRecord[$damColName];
+		}
+
+		return $updateData;
+	}
+
+	/**
+	 * initialize column mapping for insert or updating the sys_file record
+	 *
+	 * @return void
+	 */
+	protected function initializeColumnMapping() {
 		// add always available cols for filemetadata
 		foreach ($this->metaColMapping as $damColName => $metaColName) {
-			$updateData[$metaColName] = $damRecord[$damColName];
+			$this->columnMapping[$damColName] = $metaColName;
 		}
 
 		// add additional cols if ext:for filemetadata is installed
 		if (ExtensionManagementUtility::isLoaded('filemetadata')) {
 			foreach ($this->additionalMetaColMapping as $damColName => $metaColName) {
-				$updateData[$metaColName] = $damRecord[$damColName];
+				$this->columnMapping[$damColName] = $metaColName;
 			}
 		}
-
-		return $updateData;
 	}
 }
