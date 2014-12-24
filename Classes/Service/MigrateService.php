@@ -41,6 +41,11 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 class MigrateService extends AbstractService {
 
 	/**
+	 * @var integer
+	 */
+	protected $currentTime;
+
+	/**
 	 * how to map cols for meta data
 	 * These cols are always available since TYPO3 6.2
 	 *
@@ -73,6 +78,11 @@ class MigrateService extends AbstractService {
 	);
 
 	/**
+	 * @var array
+	 */
+	protected $columnMapping = array();
+
+	/**
 	 * saves the amount of files which could not be found in storage
 	 *
 	 * @var integer
@@ -99,7 +109,10 @@ class MigrateService extends AbstractService {
 		$total = $this->database->sql_num_rows($result);
 		$this->controller->infoMessage('Found ' . $total . ' DAM records without a connection to a sys_file entry');
 
+		$this->initializeColumnMapping();
+
 		while ($damRecord = $this->database->sql_fetch_assoc($result)) {
+			$this->currentTime = time();
 			$counter++;
 			if ($this->isValidDirectory($damRecord)) {
 				try {
@@ -233,21 +246,32 @@ class MigrateService extends AbstractService {
 	 */
 	protected function createArrayForUpdateInsertSysFileRecord(array $damRecord) {
 		$updateData = array(
-			'tstamp' => time(),
+			'tstamp' => $this->currentTime,
 		);
 
+		foreach ($this->columnMapping as $damColName => $metaColName) {
+			$updateData[$metaColName] = $damRecord[$damColName];
+		}
+
+		return $updateData;
+	}
+
+	/**
+	 * initialize column mapping for insert or updating the sys_file record
+	 *
+	 * @return void
+	 */
+	protected function initializeColumnMapping() {
 		// add always available cols for filemetadata
 		foreach ($this->metaColMapping as $damColName => $metaColName) {
-			$updateData[$metaColName] = $damRecord[$damColName];
+			$this->columnMapping[$damColName] = $metaColName;
 		}
 
 		// add additional cols if ext:for filemetadata is installed
 		if (ExtensionManagementUtility::isLoaded('filemetadata')) {
 			foreach ($this->additionalMetaColMapping as $damColName => $metaColName) {
-				$updateData[$metaColName] = $damRecord[$damColName];
+				$this->columnMapping[$damColName] = $metaColName;
 			}
 		}
-
-		return $updateData;
 	}
 }

@@ -55,7 +55,11 @@ class MigrateRelationsService extends AbstractService {
 	 * @return FlashMessage
 	 */
 	public function execute() {
-		$this->controller->headerMessage(LocalizationUtility::translate('migrateRelationsCommand', 'dam_falmigration'));
+		if ($this->tablename === '') {
+			$this->controller->headerMessage(LocalizationUtility::translate('migrateRelationsCommand', 'dam_falmigration'));
+		} else {
+			$this->controller->headerMessage(LocalizationUtility::translate('migrateRelationsCommandForTable', 'dam_falmigration', array($this->tablename)));
+		}
 		if (!$this->isTableAvailable('tx_dam_mm_ref')) {
 			return $this->getResultMessage('referenceTableNotFound');
 		}
@@ -193,6 +197,7 @@ class MigrateRelationsService extends AbstractService {
 		if ($this->tablename !== '') {
 			$where = 'tx_dam_mm_ref.tablenames = "' . $this->tablename . '"';
 		}
+
 		return $this->database->exec_SELECTquery(
 			'tx_dam_mm_ref.*,
 			sys_file_metadata.title,

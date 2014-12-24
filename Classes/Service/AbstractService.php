@@ -45,7 +45,8 @@ abstract class AbstractService {
 	protected $objectManager;
 
 	/**
-	 * @var \B13\DamFalmigration\Controller\DamMigrationCommandController $controller Used to log output to console
+	 * @var \B13\DamFalmigration\Controller\DamMigrationCommandController
+	 *    $controller Used to log output to console
 	 */
 	protected $controller;
 
@@ -53,6 +54,11 @@ abstract class AbstractService {
 	 * @var \TYPO3\CMS\Core\Database\DatabaseConnection
 	 */
 	protected $database;
+
+	/**
+	 * @var array
+	 */
+	protected $fieldMapping = array();
 
 	/**
 	 * @var \TYPO3\CMS\Core\Resource\FileRepository
@@ -90,7 +96,7 @@ abstract class AbstractService {
 	 *
 	 * @param \B13\DamFalmigration\Controller\DamMigrationCommandController $controller
 	 */
-	public function __construct (DamMigrationCommandController $controller = NULL) {
+	public function __construct(DamMigrationCommandController $controller = NULL) {
 		$this->setController($controller);
 	}
 
@@ -120,6 +126,20 @@ abstract class AbstractService {
 		$tables = $this->database->admin_get_tables();
 
 		return array_key_exists($table, $tables);
+	}
+
+	/**
+	 * check if given field exists in a table
+	 *
+	 * @param string $field
+	 * @param string $table
+	 *
+	 * @return bool
+	 */
+	protected function isFieldAvailable($field, $table) {
+		$tables = $this->database->admin_get_fields($table);
+
+		return array_key_exists($field, $tables);
 	}
 
 	/**
@@ -210,11 +230,9 @@ abstract class AbstractService {
 				}
 
 				$record['uid_local'] = $fileObject->getUid();
-				if (count($fieldnameMapping)) {
-					foreach ($fieldnameMapping as $old => $new) {
-						if ($record['ident'] === $old) {
-							$record['ident'] = $new;
-						}
+				foreach ($fieldnameMapping as $old => $new) {
+					if ($record['ident'] === $old) {
+						$record['ident'] = $new;
 					}
 				}
 
@@ -242,7 +260,7 @@ abstract class AbstractService {
 					$this->amountOfMigratedRecords++;
 					$this->controller->message($progress . ' Migrating relation for ' . (string)$record['tablenames'] . ' uid: ' . $record['item_uid'] . ' dam uid: ' . $record['dam_uid'] . ' to fal uid: ' . $record['uid_local']);
 				} else {
-					$this->controller->message($progress . ' Reference already exists.');
+					$this->controller->message($progress . ' Reference already exists for uid: ' . (int)$record['item_uid']);
 				}
 			}
 		}
@@ -265,7 +283,7 @@ abstract class AbstractService {
 			' AND tablenames = "' . $fileReference['tablenames'] . '"' .
 			' AND fieldname = "' . $fileReference['ident'] . '"' .
 			' AND table_local = "sys_file"' .
-	      ' AND deleted = 0'
+			' AND deleted = 0'
 		);
 	}
 
@@ -369,5 +387,27 @@ abstract class AbstractService {
 		$this->controller = $controller;
 
 		return $this;
+	}
+
+	/**
+	 * Update reference counters for given table and fieldmapping
+	 *
+	 * @param string $table
+	 *
+	 * @return void
+	 */
+	protected function updateReferenceCounters($table) {
+		$set = array();
+		$this->controller->successMessage(LocalizationUtility::translate('updateReferenceCounters', 'dam_falmigration'));
+		foreach ($this->fieldMapping as $old => $new) {
+			if ($this->isFieldAvailable($new, $table)) {
+				$set[] = $new . ' = ' . $old;
+			}
+		}
+		if (count($set)) {
+			$this->database->sql_query(
+				'UPDATE ' . $table . ' SET ' . implode(',', $set)
+			);
+		}
 	}
 }

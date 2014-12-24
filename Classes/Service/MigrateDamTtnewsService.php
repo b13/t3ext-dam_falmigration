@@ -32,6 +32,14 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 class MigrateDamTtnewsService extends AbstractService {
 
 	/**
+	 * @var array
+	 */
+	protected $fieldMapping = array(
+		'tx_damnews_dam_images' => 'tx_falttnews_fal_images',
+		'tx_damnews_dam_media' => 'tx_falttnews_fal_media'
+	);
+
+	/**
 	 * Main function, returns a FlashMessge
 	 *
 	 * @throws \Exception
@@ -45,30 +53,14 @@ class MigrateDamTtnewsService extends AbstractService {
 		}
 
 		$articlesWithImagesResult = $this->getRecordsWithDamConnections('tt_news', 'tx_damnews_dam_images');
-		$this->migrateDamReferencesToFalReferences($articlesWithImagesResult, 'tt_news', 'image', array('tx_damnews_dam_images' => 'tx_falttnews_fal_images'));
+		$this->migrateDamReferencesToFalReferences($articlesWithImagesResult, 'tt_news', 'image', $this->fieldMapping);
 
 		$articlesWithMediaResult = $this->getRecordsWithDamConnections('tt_news', 'tx_damnews_dam_media');
-		$this->migrateDamReferencesToFalReferences($articlesWithMediaResult, 'tt_news', 'media', array('tx_damnews_dam_media' => 'tx_falttnews_fal_media'));
+		$this->migrateDamReferencesToFalReferences($articlesWithMediaResult, 'tt_news', 'media', $this->fieldMapping);
+
+		$this->updateReferenceCounters('tt_news');
 
 		return $this->getResultMessage();
-	}
-
-	/**
-	 * Update reference counters of tt_news record
-	 *
-	 * @param array $article
-	 *
-	 * @return void
-	 */
-	protected function updateReferenceCounters(array $article) {
-		$this->database->exec_UPDATEquery(
-			'tt_news',
-			'uid = ' . $article['item_uid'],
-			array(
-				'tx_falttnews_fal_images' => $article['tx_damnews_dam_images'],
-				'tx_falttnews_fal_media' => $article['tx_damnews_dam_media']
-			)
-		);
 	}
 
 }
