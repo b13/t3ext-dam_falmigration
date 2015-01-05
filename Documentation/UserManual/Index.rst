@@ -35,7 +35,7 @@ The available migration tasks can be found under the *extbase* cliKey:
 	                                           record.
 	  dammigration:migratedammetadata          Migrates DAM metadata to FAL
 	                                           metadata. Searches for all migrated
-	                                           sys_file records that don't have any
+	                                           sys_file records that do not have any
 	                                           titles yet.
 	  dammigration:migratemediatagsinrte       Migrates the <media DAM_UID target
 	                                           title>Linktext</media> to <link

@@ -57,7 +57,7 @@ class DamMigrationCommandController extends AbstractCommandController {
 
 	/**
 	 * Migrates DAM metadata to FAL metadata.
-	 * Searches for all migrated sys_file records that don't have any titles yet.
+	 * Searches for all migrated sys_file records that do not have any titles yet.
 	 *
 	 * @return void
 	 */
@@ -142,7 +142,7 @@ class DamMigrationCommandController extends AbstractCommandController {
 
 	/**
 	 * migrate all DAM categories to sys_file_collection records,
-	 * while also migrating the references if they don't exist yet
+	 * while also migrating the references if they do not exist yet
 	 * as a pre-requisite, there needs to be sys_file records that
 	 * have been migrated from DAM
 	 *
