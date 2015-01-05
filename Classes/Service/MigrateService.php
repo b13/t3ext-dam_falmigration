@@ -34,7 +34,7 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
  * to connect the DAM and FAL DB records
  *
  * currently it only works for files within the fileadmin
- * FILES DON'T GET MOVED somewhere else
+ * FILES DO NOT GET MOVED somewhere else
  *
  * @author Benjamin Mack <benni@typo3.org>
  */

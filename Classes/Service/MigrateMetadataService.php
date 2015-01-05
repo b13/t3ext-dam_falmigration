@@ -28,7 +28,7 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
  * Migrates DAM metadata to FAL metadata. Searches for all migrated sys_file
- * records that don't have any titles yet.
+ * records that do not have any titles yet.
  *
  * @author Benjamin Mack <benni@typo3.org>
  */
