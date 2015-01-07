@@ -37,228 +37,233 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
  */
 class MigrateRelationsService extends AbstractService {
 
-	/**
-	 * @var \TYPO3\CMS\Core\Database\ReferenceIndex
-	 * @inject
-	 */
-	protected $referenceIndex;
+    /**
+     * @var \TYPO3\CMS\Core\Database\ReferenceIndex
+     * @inject
+     */
+    protected $referenceIndex;
 
-	/**
-	 * @var string
-	 */
-	protected $tablename = '';
+    /**
+     * @var string
+     */
+    protected $tablename = '';
 
-	/**
-	 * main function
-	 *
-	 * @throws \Exception
-	 * @return FlashMessage
-	 */
-	public function execute() {
-		if ($this->tablename === '') {
-			$this->controller->headerMessage(LocalizationUtility::translate('migrateRelationsCommand', 'dam_falmigration'));
-		} else {
-			$this->controller->headerMessage(LocalizationUtility::translate('migrateRelationsCommandForTable', 'dam_falmigration', array($this->tablename)));
-		}
-		if (!$this->isTableAvailable('tx_dam_mm_ref')) {
-			return $this->getResultMessage('referenceTableNotFound');
-		}
+    /**
+     * main function
+     *
+     * @throws \Exception
+     * @return FlashMessage
+     */
+    public function execute() {
+        if ($this->tablename === '') {
+            $this->controller->headerMessage(LocalizationUtility::translate('migrateRelationsCommand', 'dam_falmigration'));
+        } else {
+            $this->controller->headerMessage(LocalizationUtility::translate('migrateRelationsCommandForTable', 'dam_falmigration', array($this->tablename)));
+        }
+        if (!$this->isTableAvailable('tx_dam_mm_ref')) {
+            return $this->getResultMessage('referenceTableNotFound');
+        }
 
-		$numberImportedRelationsByContentElement = array();
-		$damRelations = $this->execSelectDamReferencesWhereSysFileExists();
+        $numberImportedRelationsByContentElement = array();
+        $damRelations = $this->execSelectDamReferencesWhereSysFileExists();
 
-		$counter = 0;
-		$total = $this->database->sql_num_rows($damRelations);
+        $counter = 0;
+        $total = $this->database->sql_num_rows($damRelations);
 
-		$this->controller->message('Found ' . $total . ' relations.');
-		while ($damRelation = $this->database->sql_fetch_assoc($damRelations)) {
-			$counter++;
-			$pid = $this->getPidOfForeignRecord($damRelation);
-			$insertData = array(
-				'pid' => ($pid === NULL) ? 0 : $pid,
-				'tstamp' => time(),
-				'crdate' => time(),
-				'cruser_id' => $GLOBALS['BE_USER']->user['uid'],
-				'sorting_foreign' => $damRelation['sorting_foreign'],
-				'uid_local' => $damRelation['sys_file_uid'],
-				'uid_foreign' => $damRelation['uid_foreign'],
-				'tablenames' => $damRelation['tablenames'],
-				'fieldname' => $this->getColForFieldName($damRelation),
-				'table_local' => 'sys_file',
-				'title' => $damRelation['title'],
-				'description' => $damRelation['description'],
-				'alternative' => $damRelation['alternative'],
-			);
+        $this->controller->message('Found ' . $total . ' relations.');
+        while ($damRelation = $this->database->sql_fetch_assoc($damRelations)) {
+            $counter++;
+            $pid = $this->getPidOfForeignRecord($damRelation);
+            $insertData = array(
+                    'pid' => ($pid === NULL) ? 0 : $pid,
+                    'tstamp' => time(),
+                    'crdate' => time(),
+                    'cruser_id' => $GLOBALS['BE_USER']->user['uid'],
+                    'sorting_foreign' => $damRelation['sorting_foreign'],
+                    'uid_local' => $damRelation['sys_file_uid'],
+                    'uid_foreign' => $damRelation['uid_foreign'],
+                    'tablenames' => $damRelation['tablenames'],
+                    'fieldname' => $this->getColForFieldName($damRelation),
+                    'table_local' => 'sys_file',
+                    'title' => $damRelation['title'],
+                    'description' => $damRelation['description'],
+                    'alternative' => $damRelation['alternative'],
+            );
 
-			// we need an array holding the already migrated file-relations to choose the right line of the imagecaption-field.
-			if ($insertData['tablenames'] == 'tt_content' && ($insertData['fieldname'] == 'media' || $insertData['fieldname'] == 'image')) {
-				$numberImportedRelationsByContentElement[$insertData['uid_foreign']]++;
-			}
+            // we need an array holding the already migrated file-relations to choose the right line of the imagecaption-field.
+            if ($insertData['tablenames'] == 'tt_content' && ($insertData['fieldname'] == 'media' || $insertData['fieldname'] == 'image')) {
+                $numberImportedRelationsByContentElement[$insertData['uid_foreign']]++;
+            }
 
-			if (!$this->doesFileReferenceExist($damRelation)) {
-				$this->database->exec_INSERTquery(
-					'sys_file_reference',
-					$insertData
-				);
-				$newRelationsRecordUid = $this->database->sql_insert_id();
-				$this->updateReferenceIndex($newRelationsRecordUid);
+            if (!$this->doesFileReferenceExist($damRelation)) {
+                $this->database->exec_INSERTquery(
+                        'sys_file_reference',
+                        $insertData
+                );
+                $newRelationsRecordUid = $this->database->sql_insert_id();
+                $this->updateReferenceIndex($newRelationsRecordUid);
 
-				// pageLayoutView-object needs image to be set something higher than 0
-				if ($damRelation['tablenames'] === 'tt_content' || $damRelation['tablenames'] === 'pages') {
-					if ($insertData['fieldname'] === 'image') {
-						$tcaConfig = $GLOBALS['TCA']['tt_content']['columns']['image']['config'];
-						if ($tcaConfig['type'] === 'inline') {
-							$this->database->exec_UPDATEquery(
-								'tt_content',
-								'uid = ' . $damRelation['uid_foreign'],
-								array('image' => 1)
-							);
-						}
+                // pageLayoutView-object needs image to be set something higher than 0
+                if ($damRelation['tablenames'] === 'tt_content' ||
+                        $damRelation['tablenames'] === 'pages' ||
+                        $damRelation['tablenames'] === 'pages_language_overlay'
+                ) {
+                    if ($insertData['fieldname'] === 'image') {
+                        $tcaConfig = $GLOBALS['TCA']['tt_content']['columns']['image']['config'];
+                        if ($tcaConfig['type'] === 'inline') {
+                            $this->database->exec_UPDATEquery(
+                                    'tt_content',
+                                    'uid = ' . $damRelation['uid_foreign'],
+                                    array('image' => 1)
+                            );
+                        }
 
-						// migrate image_links from tt_content.
-						$linkFromContentRecord = $this->database->exec_SELECTgetSingleRow(
-							'image_link,imagecaption',
-							'tt_content',
-							'uid = ' . $damRelation['uid_foreign']
-						);
-						if (!empty($linkFromContentRecord)) {
-							$imageLinks = explode(chr(10), $linkFromContentRecord['image_link']);
-							$imageCaptions = explode(chr(10), $linkFromContentRecord['imagecaption']);
-							$this->database->exec_UPDATEquery(
-								'sys_file_reference',
-								'uid = ' . $newRelationsRecordUid,
-								array(
-									'link' => $imageLinks[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1],
-									'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]
+                        // migrate image_links from tt_content.
+                        $linkFromContentRecord = $this->database->exec_SELECTgetSingleRow(
+                                'image_link,imagecaption',
+                                'tt_content',
+                                'uid = ' . $damRelation['uid_foreign']
+                        );
+                        if (!empty($linkFromContentRecord)) {
+                            $imageLinks = explode(chr(10), $linkFromContentRecord['image_link']);
+                            $imageCaptions = explode(chr(10), $linkFromContentRecord['imagecaption']);
+                            $this->database->exec_UPDATEquery(
+                                    'sys_file_reference',
+                                    'uid = ' . $newRelationsRecordUid,
+                                    array(
+                                            'link' => $imageLinks[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1],
+                                            'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]
 
-								)
-							);
-						}
-					} elseif ($insertData['fieldname'] === 'media') {
-						// migrate captions from tt_content upload elements
-						$linkFromContentRecord = $this->database->exec_SELECTgetSingleRow(
-							'imagecaption',
-							'tt_content',
-							'uid = ' . $damRelation['uid_foreign']
-						);
+                                    )
+                            );
+                        }
+                    } elseif ($insertData['fieldname'] === 'media') {
+                        // migrate captions from tt_content upload elements
+                        $linkFromContentRecord = $this->database->exec_SELECTgetSingleRow(
+                                'imagecaption',
+                                'tt_content',
+                                'uid = ' . $damRelation['uid_foreign']
+                        );
 
-						if (!empty($linkFromContentRecord)) {
-							$imageCaptions = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(chr(10), $linkFromContentRecord['imagecaption']);
-							$this->database->exec_UPDATEquery(
-								'sys_file_reference',
-								'uid = ' . $newRelationsRecordUid,
-								array(
-									'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]
-								)
-							);
-						}
-					}
-				}
-				$this->controller->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total .
-				                           ' id: ' . $damRelation['uid_local'] .
-				                           ' table: ' . $damRelation['tablenames'] .
-				                           ' ident: ' . $damRelation['ident']);
-				$this->amountOfMigratedRecords++;
-			}
-		}
-		$this->database->sql_free_result($damRelations);
+                        if (!empty($linkFromContentRecord)) {
+                            $imageCaptions = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(chr(10), $linkFromContentRecord['imagecaption']);
+                            $this->database->exec_UPDATEquery(
+                                    'sys_file_reference',
+                                    'uid = ' . $newRelationsRecordUid,
+                                    array(
+                                            'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]
+                                    )
+                            );
+                        }
+                    }
+                }
+                $this->controller->message(number_format(100 * ($counter / $total), 1) . '% of ' . $total .
+                        ' id: ' . $damRelation['uid_local'] .
+                        ' table: ' . $damRelation['tablenames'] .
+                        ' ident: ' . $damRelation['ident']);
+                $this->amountOfMigratedRecords++;
+            }
+        }
+        $this->database->sql_free_result($damRelations);
 
-		return $this->getResultMessage();
-	}
+        return $this->getResultMessage();
+    }
 
-	/**
-	 * get pid of foreign record
-	 * this is needed by sys_file_reference records
-	 *
-	 * @param array $damRelation
-	 *
-	 * @return integer
-	 */
-	protected function getPidOfForeignRecord(array $damRelation) {
-		$record = $GLOBALS['TYPO3_DB']->exec_SELECTgetSingleRow(
-			'pid',
-			$damRelation['tablenames'],
-			'uid=' . (int)$damRelation['uid_foreign']
-		);
+    /**
+     * get pid of foreign record
+     * this is needed by sys_file_reference records
+     *
+     * @param array $damRelation
+     *
+     * @return integer
+     */
+    protected function getPidOfForeignRecord(array $damRelation) {
+        $record = $GLOBALS['TYPO3_DB']->exec_SELECTgetSingleRow(
+                'pid',
+                $damRelation['tablenames'],
+                'uid=' . (int)$damRelation['uid_foreign']
+        );
 
-		return $record['pid'] ?: 0;
-	}
+        return $record['pid'] ?: 0;
+    }
 
-	/**
-	 * After a migration of tx_dam -> sys_file the col _migrateddamuid is
-	 * filled with dam uid Now we can search in dam relations for dam records
-	 * which have already been migrated to sys_file
-	 *
-	 * @return \mysqli_result
-	 */
-	protected function execSelectDamReferencesWhereSysFileExists() {
-		$where = 'tx_dam_mm_ref.tablenames <> ""';
-		if ($this->tablename !== '') {
-			$where = 'tx_dam_mm_ref.tablenames = "' . $this->tablename . '"';
-		}
+    /**
+     * After a migration of tx_dam -> sys_file the col _migrateddamuid is
+     * filled with dam uid Now we can search in dam relations for dam records
+     * which have already been migrated to sys_file
+     *
+     * @return \mysqli_result
+     */
+    protected function execSelectDamReferencesWhereSysFileExists() {
+        $where = 'tx_dam_mm_ref.tablenames <> ""';
+        if ($this->tablename !== '') {
+            $where = 'tx_dam_mm_ref.tablenames = "' . $this->tablename . '"';
+        }
 
-		return $this->database->exec_SELECTquery(
-			'tx_dam_mm_ref.*,
+        return $this->database->exec_SELECTquery(
+                'tx_dam_mm_ref.*,
 			sys_file_metadata.title,
 			sys_file_metadata.description,
 			sys_file_metadata.alternative,
 			sys_file.uid as sys_file_uid',
-			'tx_dam_mm_ref
+                'tx_dam_mm_ref
 			JOIN sys_file ON
 				sys_file._migrateddamuid = tx_dam_mm_ref.uid_local
 			JOIN sys_file_metadata ON
 				sys_file.uid = sys_file_metadata.file
 				',
-			$where,
-			'',
-			'tx_dam_mm_ref.sorting ASC',
-			(int)$this->getRecordLimit()
-		);
-	}
+                $where,
+                '',
+                'tx_dam_mm_ref.sorting ASC',
+                (int)$this->getRecordLimit()
+        );
+    }
 
-	/**
-	 * col for fieldname was saved in col "ident"
-	 * But: If dam_ttcontent is installed fieldName is "image" for images and
-	 * "media" for uploads
-	 *
-	 * @param array $damRelation
-	 *
-	 * @return string
-	 */
-	protected function getColForFieldName(array $damRelation) {
-		if ($damRelation['tablenames'] == 'tt_content' && $damRelation['ident'] == 'tx_damttcontent_files') {
-			$fieldName = 'image';
-		} elseif ($damRelation['tablenames'] == 'tt_content' && ($damRelation['ident'] == 'tx_damttcontent_files_upload' || $damRelation['ident'] == 'tx_damfilelinks_filelinks')) {
-			$fieldName = 'media';
-		} elseif ($damRelation['tablenames'] == 'pages' && $damRelation['ident'] == 'tx_dampages_files') {
-			$fieldName = 'media';
-		} else {
-			$fieldName = $damRelation['ident'];
-		}
+    /**
+     * col for fieldname was saved in col "ident"
+     * But: If dam_ttcontent is installed fieldName is "image" for images and
+     * "media" for uploads
+     *
+     * @param array $damRelation
+     *
+     * @return string
+     */
+    protected function getColForFieldName(array $damRelation) {
+        if ($damRelation['tablenames'] == 'tt_content' && $damRelation['ident'] == 'tx_damttcontent_files') {
+            $fieldName = 'image';
+        } elseif ($damRelation['tablenames'] == 'tt_content' && ($damRelation['ident'] == 'tx_damttcontent_files_upload' || $damRelation['ident'] == 'tx_damfilelinks_filelinks')) {
+            $fieldName = 'media';
+        } elseif (($damRelation['tablenames'] == 'pages' || $damRelation['tablenames'] == 'pages_language_overlay')
+                && $damRelation['ident'] == 'tx_dampages_files'
+        ) {
+            $fieldName = 'media';
+        } else {
+            $fieldName = $damRelation['ident'];
+        }
 
-		return $fieldName;
-	}
+        return $fieldName;
+    }
 
-	/**
-	 * update reference index
-	 *
-	 * @param integer $uid
-	 *
-	 * @return void
-	 */
-	protected function updateReferenceIndex($uid) {
-		$this->referenceIndex->updateRefIndexTable('sys_file_reference', $uid);
-	}
+    /**
+     * update reference index
+     *
+     * @param integer $uid
+     *
+     * @return void
+     */
+    protected function updateReferenceIndex($uid) {
+        $this->referenceIndex->updateRefIndexTable('sys_file_reference', $uid);
+    }
 
-	/**
-	 * @param string $tablename
-	 *
-	 * @return $this to allow for chaining
-	 */
-	public function setTablename($tablename) {
-		$this->tablename = $tablename;
+    /**
+     * @param string $tablename
+     *
+     * @return $this to allow for chaining
+     */
+    public function setTablename($tablename) {
+        $this->tablename = $tablename;
 
-		return $this;
-	}
+        return $this;
+    }
 
 }
