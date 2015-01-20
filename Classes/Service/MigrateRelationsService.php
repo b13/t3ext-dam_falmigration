@@ -155,13 +155,20 @@ class MigrateRelationsService extends AbstractService {
 
                         if (!empty($linkFromContentRecord)) {
                             $imageCaptions = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(chr(10), $linkFromContentRecord['imagecaption']);
-                            $this->database->exec_UPDATEquery(
-                                    'sys_file_reference',
-                                    'uid = ' . $newRelationsRecordUid,
-                                    array(
-                                            'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]
-                                    )
-                            );
+                            $update = array();
+                            // only update title if caption explode has some content
+                            if ($imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]) {
+                                $update['title'] = $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
+                            }
+                            if (count($update)) {
+                                $this->database->exec_UPDATEquery(
+                                        'sys_file_reference',
+                                        'uid = ' . $newRelationsRecordUid,
+                                        array(
+                                                'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]
+                                        )
+                                );
+                            }
                         }
                     }
                 }
@@ -237,13 +244,11 @@ class MigrateRelationsService extends AbstractService {
      * @return string
      */
     protected function getColForFieldName(array $damRelation) {
-        if ($damRelation['tablenames'] == 'tt_content'
-                && ($damRelation['ident'] == 'tx_damttcontent_files'
-                        || $damRelation['ident'] == 'tx_damttcontent_files_upload'
-                        || $damRelation['ident'] == 'tx_damfilelinks_filelinks')
-        ) {
+        if ($damRelation['tablenames'] == 'tt_content' && $damRelation['ident'] == 'tx_damttcontent_files') {
             $fieldName = 'image';
-        } elseif ($damRelation['tablenames'] == 'tt_content') {
+        } elseif ($damRelation['tablenames'] == 'tt_content' &&
+                ($damRelation['ident'] == 'tx_damttcontent_files_upload' || $damRelation['ident'] == 'tx_damfilelinks_filelinks')
+        ) {
             $fieldName = 'media';
         } elseif (($damRelation['tablenames'] == 'pages' || $damRelation['tablenames'] == 'pages_language_overlay')
                 && $damRelation['ident'] == 'tx_dampages_files'
