@@ -24,7 +24,7 @@ Install the extension
 The installation process is pretty straightforward.
 Download and install the extension via TYPO3's extension manager.
 
-You can get the latest source from https://github.com/b13/t3ext-dam_falmigration and clone it directly into typo3temp/ext:
+You can get the latest source from https://github.com/b13/t3ext-dam_falmigration and clone it directly into typo3conf/ext:
 
 .. code-block:: bash
 
