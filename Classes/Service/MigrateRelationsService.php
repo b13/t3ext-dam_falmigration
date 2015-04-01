@@ -229,7 +229,7 @@ class MigrateRelationsService extends AbstractService {
 				',
                 $where,
                 '',
-                'tx_dam_mm_ref.sorting ASC',
+                'tx_dam_mm_ref.sorting ASC,tx_dam_mm_ref.sorting_foreign ASC',
                 (int)$this->getRecordLimit()
         );
     }
