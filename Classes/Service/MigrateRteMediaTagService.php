@@ -84,7 +84,8 @@ class MigrateRteMediaTagService extends AbstractService {
 						$linkText = $result[3];
 					}
 					// Match for &lt;media
-					if ((int)$result[4] > 0) {
+					$useEntities = ((int)$result[4] > 0);
+					if ($useEntities) {
 						$damUid = $result[4];
 						// see EXT:dam/mediatag/class.tx_dam_rtetransform_mediatag.php
 						list($linkTarget, $linkClass, $linkTitle) = explode(' ', trim($result[5]), 3);
@@ -100,7 +101,9 @@ class MigrateRteMediaTagService extends AbstractService {
 					$getSysFileUidStatement->execute(array(':migrateddamuid' => (int)$damUid));
 					$falRecord = $getSysFileUidStatement->fetch();
 					if (is_array($falRecord)) {
-						$replaceString = '<link file:' . $falRecord['uid'] . ' ' . $linkTarget . ' ' . $linkClass . ' ' . $linkTitle . ' ' . '>' . $linkText . '</link>';
+						$openingBracket = $useEntities ? '&lt;' : '<';
+						$closingBracket = $useEntities ? '&gt;' : '>';
+						$replaceString = $openingBracket . 'link file:' . $falRecord['uid'] . ' ' . $linkTarget . ' ' . $linkClass . ' ' . $linkTitle . ' ' . $closingBracket . $linkText . $openingBracket . '/link' . $closingBracket;
 						$finalContent = str_replace($searchString, $replaceString, $finalContent);
 					} else {
 						$this->controller->warningMessage('No FAL record found for dam uid: ' . $damUid);
