@@ -335,6 +335,69 @@ class DamMigrationCommandController extends AbstractCommandController {
 				$this->warningMessage('Plugin ' . $plugin['uid'] . ' not migrated because there are no file collections', TRUE);
 			}
 		}
+		
+		// find all dam_frontend_pi2 plugins
+		$damFrontendPlugins = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+			'tx_damdownloadlist_records, list_type, CType, uid, pid, deleted',
+			'tt_content',
+			'list_type="dam_frontend_pi2" AND CType="list" AND deleted=0 AND tx_damdownloadlist_records!=""'
+		);
+
+		$this->infoMessage('Found ' . count($damFrontendPlugins) . ' plugins of dam_frontend_pi2');
+
+		foreach ($damFrontendPlugins as $plugin) {
+
+			if (!empty($plugin['tx_damdownloadlist_records'])) {
+
+				$hasReferencesAlready = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+					'COUNT(uid) AS count',
+					'sys_file_reference',
+					'uid_foreign = ' . $plugin['uid']
+				);
+				if ($hasReferencesAlready['count'] > 0) {
+					$this->warningMessage('Plugin ' . $plugin['uid'] . ' has already been migrated because', TRUE);
+				}
+				else {
+					$newFalRecords = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+						'uid, _migrateddamuid',
+						'sys_file',
+						'_migrateddamuid IN (' . $plugin['tx_damdownloadlist_records'] . ')'
+					);
+
+					// update ctype for dam_frontend_pi2 plugin
+					$GLOBALS['TYPO3_DB']->exec_UPDATEquery(
+						'tt_content',
+						'uid=' . intval($plugin['uid']),
+						array(
+							'CType' => 'uploads',
+						)
+					);
+
+					// add the file references for the uploads plugin
+					$sort = 0;
+					foreach ($newFalRecords as $falRecord) {
+						$this->message('Adding file reference for plugin:uid ' . $plugin['uid'] . ' <-> sys_file:uid ' . $falRecord['uid']);
+						$GLOBALS['TYPO3_DB']->exec_INSERTquery(
+							'sys_file_reference',
+							array(
+								'pid' => $plugin['pid'],
+								'tstamp' => time(),
+								'crdate' => time(),
+								'cruser_id' => 0,
+								'sorting' => $sort,
+								'l10n_diffsource' => 'a:1:{s:6:"hidden";N;}',
+								'uid_local' => $falRecord['uid'],
+								'uid_foreign' => $plugin['uid'],
+								'tablenames' => 'tt_content',
+								'fieldname' => 'media',
+								'sorting_foreign' => $sort++,
+								'table_local' => 'sys_file'
+							)
+						);
+					}
+				}
+			}
+		}
 	}
 
 
