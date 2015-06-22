@@ -75,4 +75,4 @@ The available migration tasks can be found under the *extbase* cliKey:
 
 Please see the :ref:`Command Reference` for an explanation of the commands.
 
-In general you will want to execute the commands 'migratedamrecords' and 'migratemetadata' first. After that you may wish to migrate the tx_dam_mm_ref table to sys_file_reference by running the 'migraterelations' command.
+In general you will want to execute the commands 'migratedamrecords' and 'migratedammetadata' first. After that you may wish to migrate the tx_dam_mm_ref table to sys_file_reference by running the 'migraterelations' command.
