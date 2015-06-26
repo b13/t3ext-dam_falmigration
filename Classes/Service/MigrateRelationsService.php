@@ -118,25 +118,41 @@ class MigrateRelationsService extends AbstractService {
                             );
                         }
 
-                        // migrate image_links from tt_content.
-                        $linkFromContentRecord = $this->database->exec_SELECTgetSingleRow(
-                                'image_link,imagecaption',
+                        // migrate settings from tt_content.
+                        $ttContentFields = $this->database->exec_SELECTgetSingleRow(
+                                'image_link, imagecaption, titleText, altText',
                                 'tt_content',
                                 'uid = ' . $damRelation['uid_foreign']
                         );
-                        if (!empty($linkFromContentRecord)) {
+                        if (!empty($ttContentFields)) {
 
-                            $imageLinks = explode(chr(10), $linkFromContentRecord['image_link']);
-                            $imageCaptions = explode(chr(10), $linkFromContentRecord['imagecaption']);
+                            $imageLinks = explode(chr(10), $ttContentFields['image_link']);
+                            $imageCaptions = explode(chr(10), $ttContentFields['imagecaption']);
+                            $titleTexts = explode(chr(10), $ttContentFields['titleText']);
+                            $altTexts = explode(chr(10), $ttContentFields['altText']);
                             $update = array();
-                            // only update if image explode result has some content
+                            
+                            // if explodes from tt_content above yielded results...
+                            // ... copy link
                             if ($imageLinks[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]) {
                                 $update['link'] = $imageLinks[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
                             }
-                            // only update title if caption explode has some content
-                            if ($imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]) {
-                                $update['title'] = $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
+                            
+                            // ... copy title
+                            if ($titleTexts[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]) {
+                                $update['title'] = $titleTexts[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
                             }
+                            
+                            // ... copy caption (now called "description")
+                            if ($imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]) {
+                                $update['description'] = $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
+                            }
+                            
+                            // ... copy alt text
+                            if ($altTexts[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]) {
+                                $update['alternative'] = $altTexts[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
+                            }
+                            
                             if (count($update)) {
                                 $this->database->exec_UPDATEquery(
                                         'sys_file_reference',
@@ -147,26 +163,25 @@ class MigrateRelationsService extends AbstractService {
                         }
                     } elseif ($insertData['fieldname'] === 'media') {
                         // migrate captions from tt_content upload elements
-                        $linkFromContentRecord = $this->database->exec_SELECTgetSingleRow(
+                        $ttContentFields = $this->database->exec_SELECTgetSingleRow(
                                 'imagecaption',
                                 'tt_content',
                                 'uid = ' . $damRelation['uid_foreign']
                         );
 
-                        if (!empty($linkFromContentRecord)) {
-                            $imageCaptions = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(chr(10), $linkFromContentRecord['imagecaption']);
+                        if (!empty($ttContentFields)) {
+                            $imageCaptions = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(chr(10), $ttContentFields['imagecaption']);
                             $update = array();
-                            // only update title if caption explode has some content
+                            // only update title & description (new caption field) if caption explode has some content
                             if ($imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]) {
                                 $update['title'] = $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
+                                $update['description'] = $update['title'];
                             }
                             if (count($update)) {
                                 $this->database->exec_UPDATEquery(
                                         'sys_file_reference',
                                         'uid = ' . $newRelationsRecordUid,
-                                        array(
-                                                'title' => $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]
-                                        )
+                                        $update
                                 );
                             }
                         }
