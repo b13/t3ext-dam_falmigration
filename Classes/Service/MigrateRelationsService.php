@@ -103,21 +103,31 @@ class MigrateRelationsService extends AbstractService {
                 $newRelationsRecordUid = $this->database->sql_insert_id();
                 $this->updateReferenceIndex($newRelationsRecordUid);
 
-                // pageLayoutView-object needs image to be set something higher than 0
                 if ($damRelation['tablenames'] === 'tt_content' ||
                         $damRelation['tablenames'] === 'pages' ||
                         $damRelation['tablenames'] === 'pages_language_overlay'
                 ) {
-                    if ($insertData['fieldname'] === 'image') {
-                        $tcaConfig = $GLOBALS['TCA']['tt_content']['columns']['image']['config'];
+                    // when using IRRE (should be default for image & media?) we
+                    // need to supply the actual number of images referenced
+                    // by the content element
+                    // QUESTION: we currently white-list only known fieldnames,
+                    //           can we fully rely on TCA to check if this is
+                    //           being necessary? (may apply to more fields than
+                    //           just image & media)
+                    $needsReferenceCount = (($insertData['fieldname'] === 'image') ||
+                                            ($insertData['fieldname'] === 'media'));
+                    if ($needsReferenceCount) {
+                        $tcaConfig = $GLOBALS['TCA']['tt_content']['columns'][$insertData['fieldname']]['config'];
                         if ($tcaConfig['type'] === 'inline') {
                             $this->database->exec_UPDATEquery(
                                     'tt_content',
                                     'uid = ' . $damRelation['uid_foreign'],
-                                    array('image' => 1)
+                                    array($insertData['fieldname'] => $numberImportedRelationsByContentElement[$insertData['uid_foreign']])
                             );
                         }
+                    }
 
+                    if ($insertData['fieldname'] === 'image') {
                         // migrate image_links from tt_content.
                         $linkFromContentRecord = $this->database->exec_SELECTgetSingleRow(
                                 'image_link,imagecaption',
