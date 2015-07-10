@@ -172,10 +172,9 @@ class MigrateRelationsService extends AbstractService {
                         if (!empty($ttContentFields)) {
                             $imageCaptions = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(chr(10), $ttContentFields['imagecaption']);
                             $update = array();
-                            // only update title & description (new caption field) if caption explode has some content
+                            // only update description (new caption field) if caption explode has some content
                             if ($imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]) {
-                                $update['title'] = $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
-                                $update['description'] = $update['title'];
+                                $update['description'] = $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
                             }
                             if (count($update)) {
                                 $this->database->exec_UPDATEquery(
