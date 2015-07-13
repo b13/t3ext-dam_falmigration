@@ -47,6 +47,13 @@ class MigrateRelationsService extends AbstractService {
      * @var string
      */
     protected $tablename = '';
+    
+    /**
+     * Layout to set on migrated content elements of CType "uploads".
+     * Layout 1 matches dam_filelinks behaviour (file type icon before links).
+     * @var int
+     */
+    protected $uploadsLayout = 1;
 
     /**
      * main function
@@ -102,6 +109,28 @@ class MigrateRelationsService extends AbstractService {
                 );
                 $newRelationsRecordUid = $this->database->sql_insert_id();
                 $this->updateReferenceIndex($newRelationsRecordUid);
+
+                // update layout of CType uploads
+                if (($damRelation['tablenames'] === 'tt_content') && ($insertData['fieldname'] == 'media')) {
+                    // check if content element actually has CType uploads
+                    $contentElement = $this->database->exec_SELECTgetSingleRow(
+                            'CType',
+                            'tt_content',
+                            'uid = ' . $damRelation['uid_foreign']
+                    );
+
+                    $shouldSetLayout = (($this->uploadsLayout !== NULL) && ($contentElement !== NULL) && is_array($contentElement) && ($contentElement['CType'] == 'uploads'));
+
+                    if ($shouldSetLayout) {
+                        $this->database->exec_UPDATEquery(
+                                'tt_content',
+                                'uid = ' . $damRelation['uid_foreign'],
+                                array(
+                                        'layout' => $this->uploadsLayout
+                                )
+                        );
+                    }
+                }
 
                 if ($damRelation['tablenames'] === 'tt_content' ||
                         $damRelation['tablenames'] === 'pages' ||
@@ -293,4 +322,18 @@ class MigrateRelationsService extends AbstractService {
         return $this;
     }
 
+    /**
+     * Sets the layout ID to update "uploads" content elements with upon migration.
+     * @param mixed $uploadsLayout layout ID to set, NULL or 'null' to disable
+     * @return $this to allow for chaining
+     */
+    public function setUploadsLayout($uploadsLayout) {
+        if (($uploadsLayout === NULL) || (strtolower($uploadsLayout) === 'null')) {
+            $this->uploadsLayout = NULL;
+        } else {
+            $this->uploadsLayout = (int)$uploadsLayout;
+        }
+
+        return $this;
+    }
 }

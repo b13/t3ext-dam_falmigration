@@ -453,15 +453,17 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 * It is highly recommended to update the ref index afterwards.
 	 *
 	 * @param string $tablename The tablename to migrate relations for
+	 * @param string $uploadsLayout The layout ID to set on migrated CType uploads ("file links") content elements. 1 shows file type icons (like dam_filelinks did), 2 shows a thumbnail preview instead, 0 shows nothing but link & caption. Set to 'null' if no action should be taken. Default: 1
 	 *
 	 * @return void
 	 */
-	public function migrateRelationsCommand($tablename = '') {
+	public function migrateRelationsCommand($tablename = '', $uploadsLayout = '1') {
 		$tablename = preg_replace('/[^a-zA-Z0-9_-]/', '', $tablename);
 
 		/** @var Service\MigrateRelationsService $service */
 		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRelationsService', $this);
 		$service->setTablename($tablename);
+		$service->setUploadsLayout($uploadsLayout);
 		$this->outputMessage($service->execute());
 	}
 

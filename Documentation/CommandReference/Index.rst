@@ -219,6 +219,8 @@ Options
 
 ``--tablename``
   The tablename to migrate relations for
+``--uploads-layout``
+  The layout ID to set on migrated CType uploads ("file links") content elements. 1 shows file type icons (like dam_filelinks did), 2 shows a thumbnail preview instead, 0 shows nothing but link & caption. Set to 'null' if no action should be taken. Default: 1
 
 
 
