@@ -449,19 +449,30 @@ class DamMigrationCommandController extends AbstractCommandController {
 	/**
 	 * Migrate relations to DAM records
 	 * Migrate relations to dam records that dam_ttcontent and dam_uploads introduced.
-	 *
+     *
+	 * You need to check & decide if you want to show default file titles & alt
+     * texts on images (default, useIndividual set to false). This was the
+     * default if you used the dam_ttcontent static include. In case you didn't
+     * you may want to override alt texts & titles on existing content elements
+     * with an empty string instead so they won't show up on frontend (set
+     * useIndividual flags to true).
+     *
 	 * It is highly recommended to update the ref index afterwards.
 	 *
 	 * @param string $tablename The tablename to migrate relations for
+     * @param bool $useIndividualTitles Disables use of default file titles. If true, (image) titles will only be shown if defined on content elements.
+     * @param bool $useIndividualAltTexts Disables use of default file alt texts. If true, (image) alt texts will only be shown if defined on content elements.
 	 *
 	 * @return void
 	 */
-	public function migrateRelationsCommand($tablename = '') {
+	public function migrateRelationsCommand($tablename = '', $useIndividualTitles = false, $useIndividualAltTexts = false) {
 		$tablename = preg_replace('/[^a-zA-Z0-9_-]/', '', $tablename);
 
 		/** @var Service\MigrateRelationsService $service */
 		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRelationsService', $this);
 		$service->setTablename($tablename);
+        $service->setUseIndividualTitles($useIndividualTitles);
+        $service->setUseIndividualAltTexts($useIndividualAltTexts);
 		$this->outputMessage($service->execute());
 	}
 

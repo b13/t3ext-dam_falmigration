@@ -49,6 +49,22 @@ class MigrateRelationsService extends AbstractService {
     protected $tablename = '';
 
     /**
+     * Determines if (image) titles should be copied from central DAM record
+     * (was default if dam_ttcontent static include was used) or from individual
+     * content elements (was default if static include was missing).
+     * @var bool
+     */
+    protected $useIndividualTitles = false;
+
+    /**
+     * Determines if (image) alt texts should be copied from central DAM record
+     * (was default if dam_ttcontent static include was used) or from individual
+     * content elements (was default if static include was missing).
+     * @var bool
+     */
+    protected $useIndividualAltTexts = false;
+
+    /**
      * main function
      *
      * @throws \Exception
@@ -141,8 +157,11 @@ class MigrateRelationsService extends AbstractService {
                             // ... copy title
                             if ($titleTexts[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]) {
                                 $update['title'] = $titleTexts[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
+                            } else if ($this->useIndividualTitles) {
+                                // override default title from file on rendering
+                                $update['title'] = '';
                             }
-                            
+
                             // ... copy caption (now called "description")
                             if ($imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]) {
                                 $update['description'] = $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
@@ -151,8 +170,11 @@ class MigrateRelationsService extends AbstractService {
                             // ... copy alt text
                             if ($altTexts[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]) {
                                 $update['alternative'] = $altTexts[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
+                            } else if ($this->useIndividualAltTexts) {
+                                // override default alt texts from file on rendering
+                                $update['alternative'] = '';
                             }
-                            
+
                             if (count($update)) {
                                 $this->database->exec_UPDATEquery(
                                         'sys_file_reference',
@@ -297,4 +319,29 @@ class MigrateRelationsService extends AbstractService {
         return $this;
     }
 
+    /**
+     * Determines if (image) titles should be copied from central DAM record
+     * (was default if dam_ttcontent static include was used) or from individual
+     * content elements (was default if static include was missing).
+     * @param bool $useIndividualTitles Use only titles defined on content elements?
+     * @return \TYPO3\CMS\DamFalmigration\Service\MigrateRelationsService for chaining
+     */
+    public function setUseIndividualTitles($useIndividualTitles) {
+        $this->useIndividualTitles = $useIndividualTitles;
+
+        return $this;
+    }
+
+    /**
+     * Determines if (image) alt texts should be copied from central DAM record
+     * (was default if dam_ttcontent static include was used) or from individual
+     * content elements (was default if static include was missing).
+     * @param bool $useIndividualAltTexts Use only alt texts defined on content elements?
+     * @return \TYPO3\CMS\DamFalmigration\Service\MigrateRelationsService for chaining
+     */
+    public function setUseIndividualAltTexts($useIndividualAltTexts) {
+        $this->useIndividualAltTexts = $useIndividualAltTexts;
+
+        return $this;
+    }
 }
