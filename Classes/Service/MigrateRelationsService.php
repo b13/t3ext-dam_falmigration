@@ -120,11 +120,10 @@ class MigrateRelationsService extends AbstractService {
                 $this->updateReferenceIndex($newRelationsRecordUid);
 
                 // pageLayoutView-object needs image to be set something higher than 0
-                if ($damRelation['tablenames'] === 'tt_content' ||
-                        $damRelation['tablenames'] === 'pages' ||
-                        $damRelation['tablenames'] === 'pages_language_overlay'
-                ) {
-                    if ($insertData['fieldname'] === 'image') {
+                $isTablePagesOrOverlay = (($damRelation['tablenames'] === 'pages') || ($damRelation['tablenames'] === 'pages_language_overlay'));
+                $isTableTTContent = ($damRelation['tablenames'] === 'tt_content');
+                if ($isTableTTContent || $isTablePagesOrOverlay) {
+                    if ($isTableTTContent && ($insertData['fieldname'] === 'image')) {
                         $tcaConfig = $GLOBALS['TCA']['tt_content']['columns']['image']['config'];
                         if ($tcaConfig['type'] === 'inline') {
                             $this->database->exec_UPDATEquery(
@@ -184,6 +183,18 @@ class MigrateRelationsService extends AbstractService {
                             }
                         }
                     } elseif ($insertData['fieldname'] === 'media') {
+                        // "media" is processed for both tt_content and pages
+                        // (see getColForFieldName for applicable mappings)
+
+                        // QUESTION: The way this is handled for pages and page
+                        //           language overlays does not appear to make
+                        //           any sense (introduced for dam_pages):
+                        //           Do we really query tt_content using a page
+                        //           ID for a content UID? This should not yield
+                        //           any valid results and may require testing.
+                        //           (we believe tt_content should be
+                        //           $damRelation['tablenames'] instead)
+
                         // migrate captions from tt_content upload elements
                         $ttContentFields = $this->database->exec_SELECTgetSingleRow(
                                 'imagecaption',
