@@ -48,6 +48,10 @@ they may show up with wrong or missing captions, titles and alt texts.
 Special considerations
 ----------------------
 
+`migratedammetadata` must have been run before `migraterelations`, otherwise
+metadata may be missing (database is queried for migrated FAL, not original
+DAM fields).
+
 With the introduction of FAL, TYPO3 renamed the caption field to description.
 DAM provided both a caption and a description field. When migrating from DAM to
 FAL using this extension, the DAM description field will be mapped to FAL
