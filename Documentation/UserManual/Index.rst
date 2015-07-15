@@ -58,6 +58,8 @@ The available migration tasks can be found under the *extbase* cliKey:
 	                                           with sys_file_collection references
 	                                           and removes the duplicates
 	  dammigration:updatereferenceindex        updates the reference index
+	  dammigration:migratelinks                migrates media: to file: links
+	                                           (must be run before migraterelations)
 	  dammigration:migraterelations            migrate relations to dam records
 	                                           that dam_ttcontent and dam_uploads
 	                                           introduced
@@ -75,7 +77,7 @@ The available migration tasks can be found under the *extbase* cliKey:
 
 Please see the `Command Reference`_ for an explanation of the commands.
 
-In general you will want to execute the commands 'migratedamrecords' and 'migratedammetadata' first. After that you may wish to migrate the tx_dam_mm_ref table to sys_file_reference by running the 'migraterelations' command which will, among others, migrate images and files linked into content elements. Unfortunately, the way images were handled with DAM wasn't uniform, so you may need to figure out the correct field order to pass to 'migraterelations' via additional parameters, see `Command Reference`_ and `Chain Options`_ for details.
+In general you will want to execute the commands 'migratedamrecords' and 'migratedammetadata' first, then migrate any links using 'migratelinks'. After that you may wish to migrate the tx_dam_mm_ref table to sys_file_reference by running the 'migraterelations' command which will, among others, migrate images and files linked into content elements. Unfortunately, the way images were handled with DAM wasn't uniform, so you may need to figure out the correct field order to pass to 'migraterelations' via additional parameters, see `Command Reference`_ and `Chain Options`_ for details.
 
 _Command Reference: ../CommandReference/Index.rst
 _Chain Options: MigrateRelationsChainOptions.rst

@@ -203,6 +203,27 @@ Options
 
 
 
+dam_falmigration:dammigration:migratelinks
+******************************************
+
+**Migrate media:xxx style file references in link fields to file:xxx.**
+
+If optional table & field name is omitted, migration will be performed on ``tt_content.header_link`` and ``tt_content.image_link``. Should be run before ``migrateRelations`` as it transfers ``image_link`` contents to FAL as-is.
+
+
+
+Options
+^^^^^^^
+
+``--table``
+  The table to work on. Default: `tt_content`.
+``--field``
+  The field to work on. Default if table name is omitted: `header_link` and `image_link`.
+
+
+
+
+
 dam_falmigration:dammigration:migraterelations
 **********************************************
 
@@ -263,6 +284,8 @@ Options
   Chain of fields to determine image title. (Default: `contentCaption,metaTitle,empty`)
 ``--image-alt``
   Chain of fields to determine image alt texts. (Default: `metaAlt,empty`)
+``--uploads-layout``
+  The layout ID to set on migrated CType uploads ("file links") content elements. 1 shows file type icons (like dam_filelinks did), 2 shows a thumbnail preview instead, 0 shows nothing but link & caption. Set to 'null' if no action should be taken. Default: 1
 
 
 _documentation of chain options: ../UserManual/MigrateRelationsChainOptions.rst
