@@ -27,6 +27,7 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
 /**
@@ -49,20 +50,52 @@ class MigrateRelationsService extends AbstractService {
     protected $tablename = '';
 
     /**
-     * Determines if (image) titles should be copied from central DAM record
-     * (was default if dam_ttcontent static include was used) or from individual
-     * content elements (was default if static include was missing).
-     * @var bool
+     * Chain defining priority and handling of fields for image captions.
+     * @var array
      */
-    protected $useIndividualTitles = false;
+    protected $chainImageCaption = array();
 
     /**
-     * Determines if (image) alt texts should be copied from central DAM record
-     * (was default if dam_ttcontent static include was used) or from individual
-     * content elements (was default if static include was missing).
-     * @var bool
+     * Chain defining priority and handling of fields for image titles.
+     * @var array
      */
-    protected $useIndividualAltTexts = false;
+    protected $chainImageTitle = array();
+
+    /**
+     * Chain defining priority and handling of fields for image alt texts.
+     * @var array
+     */
+    protected $chainImageAlt = array();
+
+    /* constants for parsed chain options
+     * may not be the same as parser input, so do not use outside this class
+     */
+    const CHAIN_CONTENT_TITLE = 'contentTitle';
+    const CHAIN_CONTENT_ALT = 'contentAlt';
+    const CHAIN_CONTENT_CAPTION = 'contentCaption';
+    const CHAIN_META_TITLE = 'metaTitle';
+    const CHAIN_META_ALT = 'metaAlt';
+    const CHAIN_META_CAPTION = 'metaCaption';
+    const CHAIN_META_DESCRIPTION = 'metaDescription';
+    const CHAIN_EMPTY = 'empty';
+    const CHAIN_DEFAULT = 'default';
+
+    /**
+     * Chain options parser mapping. Used to verify valid options and associate
+     * them to above constants.
+     * @var array
+     */
+    protected $chainOptionsMap = array(
+        'contentTitle' => self::CHAIN_CONTENT_TITLE,
+        'contentAlt' => self::CHAIN_CONTENT_ALT,
+        'contentCaption' => self::CHAIN_CONTENT_CAPTION,
+        'metaTitle' => self::CHAIN_META_TITLE,
+        'metaAlt' => self::CHAIN_META_ALT,
+        'metaCaption' => self::CHAIN_META_CAPTION,
+        'metaDescription' => self::CHAIN_META_DESCRIPTION,
+        'empty' => self::CHAIN_EMPTY,
+        'default' => self::CHAIN_DEFAULT,
+    );
 
     /**
      * main function
@@ -133,55 +166,38 @@ class MigrateRelationsService extends AbstractService {
                             );
                         }
 
-                        // migrate settings from tt_content.
+                        // get image-related settings saved on content element
                         $ttContentFields = $this->database->exec_SELECTgetSingleRow(
                                 'image_link, imagecaption, titleText, altText',
                                 'tt_content',
                                 'uid = ' . $damRelation['uid_foreign']
                         );
-                        if (!empty($ttContentFields)) {
 
+                        // prepare content element data to apply via chain
+                        $contentElementRelationIndex = ($numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1);
+                        $chainFieldArray = $this->compileChainFieldArray($damRelation, $ttContentFields, $contentElementRelationIndex);
+
+                        // process configurable image field chains
+                        $update = array();
+                        $update['title'] = $this->applyChain($this->chainImageTitle, $chainFieldArray);
+                        $update['alternative'] = $this->applyChain($this->chainImageAlt, $chainFieldArray);
+                        $update['description'] = $this->applyChain($this->chainImageCaption, $chainFieldArray);
+
+                        // copy link if content element has got any
+                        if (!empty($ttContentFields)) {
                             $imageLinks = explode(chr(10), $ttContentFields['image_link']);
-                            $imageCaptions = explode(chr(10), $ttContentFields['imagecaption']);
-                            $titleTexts = explode(chr(10), $ttContentFields['titleText']);
-                            $altTexts = explode(chr(10), $ttContentFields['altText']);
-                            $update = array();
-                            
-                            // if explodes from tt_content above yielded results...
-                            // ... copy link
-                            if ($imageLinks[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]) {
+
+                            if ($imageLinks[$contentElementRelationIndex]) {
                                 $update['link'] = $imageLinks[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
                             }
-                            
-                            // ... copy title
-                            if ($titleTexts[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]) {
-                                $update['title'] = $titleTexts[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
-                            } else if ($this->useIndividualTitles) {
-                                // override default title from file on rendering
-                                $update['title'] = '';
-                            }
-
-                            // ... copy caption (now called "description")
-                            if ($imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]) {
-                                $update['description'] = $imageCaptions[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
-                            }
-                            
-                            // ... copy alt text
-                            if ($altTexts[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1]) {
-                                $update['alternative'] = $altTexts[$numberImportedRelationsByContentElement[$insertData['uid_foreign']] - 1];
-                            } else if ($this->useIndividualAltTexts) {
-                                // override default alt texts from file on rendering
-                                $update['alternative'] = '';
-                            }
-
-                            if (count($update)) {
-                                $this->database->exec_UPDATEquery(
-                                        'sys_file_reference',
-                                        'uid = ' . $newRelationsRecordUid,
-                                        $update
-                                );
-                            }
                         }
+
+                        // save to database
+                        $this->database->exec_UPDATEquery(
+                                'sys_file_reference',
+                                'uid = ' . $newRelationsRecordUid,
+                                $update
+                        );
                     } elseif ($insertData['fieldname'] === 'media') {
                         // "media" is processed for both tt_content and pages
                         // (see getColForFieldName for applicable mappings)
@@ -267,6 +283,7 @@ class MigrateRelationsService extends AbstractService {
 			sys_file_metadata.title,
 			sys_file_metadata.description,
 			sys_file_metadata.alternative,
+			sys_file_metadata.caption,
 			sys_file.uid as sys_file_uid',
                 'tx_dam_mm_ref
 			JOIN sys_file ON
@@ -331,27 +348,150 @@ class MigrateRelationsService extends AbstractService {
     }
 
     /**
-     * Determines if (image) titles should be copied from central DAM record
-     * (was default if dam_ttcontent static include was used) or from individual
-     * content elements (was default if static include was missing).
-     * @param bool $useIndividualTitles Use only titles defined on content elements?
+     * Compiles all chain-relevant content required for applyChain method into
+     * an array per given file relation including all options to end chains.
+     *
+     * @param array $damRelation fields from DAM/FAL (as used in execute())
+     * @param array $ttContentFields fields from tt_content (as used in execute())
+     * @param int $contentElementRelationIndex array index of current file in tt_content multi-line string fields
+     *
+     * @return array all content required for applyChain method
+     */
+    protected function compileChainFieldArray($damRelation, $ttContentFields, $contentElementRelationIndex) {
+        // pre-defined values to end chain
+        $out = array(
+            self::CHAIN_EMPTY => '',
+            self::CHAIN_DEFAULT => NULL
+        );
+
+        // split tt_content fields by line
+        $hasTTContentFields = !empty($ttContentFields);
+        $contentCaptions = $hasTTContentFields ? explode(chr(10), $ttContentFields['imagecaption']) : array();
+        $contentTitles = $hasTTContentFields ? explode(chr(10), $ttContentFields['titleText']) : array();
+        $contentAlts = $hasTTContentFields ? explode(chr(10), $ttContentFields['altText']) : array();
+
+        // assign tt_content fields
+        $out[self::CHAIN_CONTENT_CAPTION] = (count($contentCaptions) > $contentElementRelationIndex) ? $contentCaptions[$contentElementRelationIndex] : '';
+        $out[self::CHAIN_CONTENT_TITLE] = (count($contentTitles) > $contentElementRelationIndex) ? $contentTitles[$contentElementRelationIndex] : '';
+        $out[self::CHAIN_CONTENT_ALT] = (count($contentAlts) > $contentElementRelationIndex) ? $contentAlts[$contentElementRelationIndex] : '';
+
+        // assign DAM meta data fields
+        // fields are actually coming from migrated sys_file_metadata
+        $out[self::CHAIN_META_ALT] = $damRelation['alternative'];
+        $out[self::CHAIN_META_CAPTION] = $damRelation['caption'];
+        $out[self::CHAIN_META_DESCRIPTION] = $damRelation['description'];
+        $out[self::CHAIN_META_TITLE] = $damRelation['title'];
+
+        return $out;
+    }
+
+    /**
+     * Parses the given chain string to an array of chain option constants.
+     * Prints an error message and terminates program on unknown options.
+     *
+     * @param string $chain comma-separated list of chain option names as documented (not necessarily matching constants!)
+     *
+     * @return array array of chain option constants
+     */
+    protected function parseChain($chain) {
+        $parsed = array();
+
+        $chainSplit = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(',', $chain);
+        foreach ($chainSplit as $elem) {
+            if (array_key_exists($elem, $this->chainOptionsMap)) {
+                $parsed[] = $this->chainOptionsMap[$elem];
+            } else {
+                $this->controller->errorMessage('invalid chain option: ' . $elem);
+                exit();
+            }
+        }
+
+        return $parsed;
+    }
+
+    /**
+     * Determines and returns the value to set according to given chain.
+     *
+     * @param array $chain chain as an array of chain option constants (use parseChain)
+     * @param array $chainFieldArray all content of current file reference for chain options (use compileChainFieldArray)
+     *
+     * @return mixed field value of first "non-empty" chain option or last chain option given; may be empty string (overriding FAL record data on content element), null (the opposite, not overriding central FAL record metadata) or anything else $chainFieldArray may have yielded
+     */
+    protected function applyChain($chain, $chainFieldArray) {
+        $out = null;
+
+        // replace $out by all specified fields in order
+        foreach ($chain as $chainOption) {
+            $out = $chainFieldArray[$chainOption];
+
+            // we stop on first "non-empty" (not null) field
+            // NOTE: empty($s) is false for strings consisting only of
+            //       white-space. This appears to be what TYPO3 checks for FE
+            //       rendering, it does not appear to check empty(trim($s)).
+            if (!empty($out)) {
+                break;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Sets the chain used to determine image caption content. See documentation
+     * on what values are supported and why they should be set.
+     * May terminate program on invalid input.
+     *
+     * @param string $chainImageCaption options by documented names (not class constants), separated by commas
+     *
      * @return \TYPO3\CMS\DamFalmigration\Service\MigrateRelationsService for chaining
      */
-    public function setUseIndividualTitles($useIndividualTitles) {
-        $this->useIndividualTitles = $useIndividualTitles;
+    public function setChainImageCaption($chainImageCaption) {
+        $this->chainImageCaption = $this->parseChain($chainImageCaption);
+
+        if (count($this->chainImageCaption) === 0) {
+            $this->controller->errorMessage('image caption chain cannot be empty');
+            exit;
+        }
 
         return $this;
     }
 
     /**
-     * Determines if (image) alt texts should be copied from central DAM record
-     * (was default if dam_ttcontent static include was used) or from individual
-     * content elements (was default if static include was missing).
-     * @param bool $useIndividualAltTexts Use only alt texts defined on content elements?
+     * Sets the chain used to determine image title content. See documentation
+     * on what values are supported and why they should be set.
+     * May terminate program on invalid input.
+     *
+     * @param string $chainImageTitle options by documented names (not class constants), separated by commas
+     *
      * @return \TYPO3\CMS\DamFalmigration\Service\MigrateRelationsService for chaining
      */
-    public function setUseIndividualAltTexts($useIndividualAltTexts) {
-        $this->useIndividualAltTexts = $useIndividualAltTexts;
+    public function setChainImageTitle($chainImageTitle) {
+        $this->chainImageTitle = $this->parseChain($chainImageTitle);
+
+        if (count($this->chainImageTitle) === 0) {
+            $this->controller->errorMessage('image title chain cannot be empty');
+            exit;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Sets the chain used to determine image alternative text content. See
+     * documentation on what values are supported and why they should be set.
+     * May terminate program on invalid input.
+     *
+     * @param string $chainImageAlt options by documented names (not class constants), separated by commas
+     *
+     * @return \TYPO3\CMS\DamFalmigration\Service\MigrateRelationsService for chaining
+     */
+    public function setChainImageAlt($chainImageAlt) {
+        $this->chainImageAlt = $this->parseChain($chainImageAlt);
+
+        if (count($this->chainImageAlt) === 0) {
+            $this->controller->errorMessage('image alt text chain cannot be empty');
+            exit;
+        }
 
         return $this;
     }
