@@ -5,6 +5,8 @@
 
 .. include:: ../Includes.txt
 
+.. _Chain Options:
+
 Chain options for use with migraterelations command
 ===================================================
 
@@ -126,91 +128,106 @@ with dam_ttcontent static include and styles.content.imgtext.captionEach enabled
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Caption:
+
   1. DAM Caption
   2. DAM Description
+
 - Title:
+
   1. DAM Title
+
 - Alternative text:
+
   1. DAM Alt
   2. Content Alt
 
 Note that content fields were not used for title or caption.
 
-Options to freeze texts at time of migration:
+Options to freeze texts at time of migration::
 
-::
-    --image-caption metaCaption,metaDescription,empty
-    --image-title metaTitle,empty
-    --image-alt metaAlt,contentAlt,empty
+   --image-caption metaCaption,metaDescription,empty
+   --image-title metaTitle,empty
+   --image-alt metaAlt,contentAlt,empty
 
-Options to fall back to FAL metadata instead:
+Options to fall back to FAL metadata instead::
 
-::
-    --image-caption metaCaption,default
-    --image-title default
-    --image-alt metaAlt,contentAlt,default
+   --image-caption metaCaption,default
+   --image-title default
+   --image-alt metaAlt,contentAlt,default
 
 with dam_ttcontent static include and styles.content.imgtext.captionEach disabled
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Caption:
+
   1. Content Caption
+
 - Title:
+
   1. DAM Title
+
 - Alternative text:
+
   1. DAM Alt
   2. Content Alt
 
 Note that content title field was not used.
 
-Options to freeze texts at time of migration:
+Options to freeze texts at time of migration::
 
-::
-	--image-caption contentCaption,empty
-	--image-title metaTitle,empty
-	--image-alt metaAlt,contentAlt,empty
+   --image-caption contentCaption,empty
+   --image-title metaTitle,empty
+   --image-alt metaAlt,contentAlt,empty
 
-Options to fall back to FAL metadata instead: (note that we still freeze
+Options to fall back to FAL metadata instead (note that we still freeze
 caption as it may not match the unmigrated website otherwise and also alt text
-if available at time of migration as we cannot use content alt text otherwise)
+if available at time of migration as we cannot use content alt text otherwise)::
 
-::
-	--image-caption contentCaption,empty
-	--image-title default
-	--image-alt metaAlt,contentAlt,default
+   --image-caption contentCaption,empty
+   --image-title default
+   --image-alt metaAlt,contentAlt,default
 
 
 TYPO3 4.5 default without dam_ttcontent static include
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Caption:
+
   1. Content Caption
+
 - Title:
+
   1. Content Title
+
 - Alternative text:
+
   1. Content Alt
 
 Note that no DAM metadata was used, so it does not make much sense to fall back
 to FAL metadata, you will instead want to set migrated file references to an
 empty override field.
 
-Options to freeze texts at time of migration:
+Options to freeze texts at time of migration::
 
-::
-	--image-caption contentCaption,empty
-	--image-title contentTitle,empty
-	--image-alt contentAlt,empty
+   --image-caption contentCaption,empty
+   --image-title contentTitle,empty
+   --image-alt contentAlt,empty
 
 TYPO3 6.2 default (just for comparison)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Caption:
+
   1. Content Description
   2. FAL Description
+
 - Title:
+
   1. Content Title
   2. FAL Title
+
 - Alternative text:
+
   1. Content Alt
   2. FAL Alt
 
@@ -219,22 +236,26 @@ Running migration without options (same as before introduction of configurable c
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Caption:
+
   1. DAM Description
+
 - Title:
+
   1. Content Title
   2. DAM Title
+
 - Alternative text:
+
   1. DAM Alt
 
 This is mainly provided for backwards-compatibility so default behaviour won't
 change compared to previous versions of this extension if called without
 specifying chains. If you want this behaviour, you can just omit the parameters
-listed below:
+listed below::
 
-::
-	--image-caption metaDescription,default
-	--image-title contentCaption,metaTitle,empty
-	--image-alt metaAlt,empty
+   --image-caption metaDescription,default
+   --image-title contentCaption,metaTitle,empty
+   --image-alt metaAlt,empty
 
 
 Examples

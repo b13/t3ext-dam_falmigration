@@ -234,7 +234,7 @@ Migrate relations to dam records that dam_ttcontent and dam_uploads introduced.
 The way image captions, title and alt attributes apply varies wildly across
 TYPO3 installations, mainly depending on whether you used the static
 include that came with dam_ttcontent and how you configured it. Please
-read the `documentation of chain options`_ for more information. To support all
+read the documentation of :ref:`Chain Options` for more information. To support all
 configurations, you can specify a chain for each image caption, title and
 alt text which defines the priority of each field. Each chain consists
 of one or more of the following options, separated by commas, earliest
@@ -288,7 +288,6 @@ Options
   The layout ID to set on migrated CType uploads ("file links") content elements. 1 shows file type icons (like dam_filelinks did), 2 shows a thumbnail preview instead, 0 shows nothing but link & caption. Set to 'null' if no action should be taken. Default: 1
 
 
-_documentation of chain options: ../UserManual/MigrateRelationsChainOptions.rst
 
 
 
