@@ -127,19 +127,15 @@ be able to quickly reset and retry migration if you notice any errors.
 with dam_ttcontent static include and styles.content.imgtext.captionEach enabled
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Caption:
-
-  1. DAM Caption
-  2. DAM Description
-
-- Title:
-
-  1. DAM Title
-
-- Alternative text:
-
-  1. DAM Alt
-  2. Content Alt
++----------------------+--------------------+
+| **Caption**          | 1. DAM Caption     |
+|                      | 2. DAM Description |
++----------------------+--------------------+
+| **Title**            | 1. DAM Title       |
++----------------------+--------------------+
+| **Alternative text** | 1. DAM Alt         |
+|                      | 2. Content Alt     |
++----------------------+--------------------+
 
 Note that content fields were not used for title or caption.
 
@@ -158,18 +154,14 @@ Options to fall back to FAL metadata instead::
 with dam_ttcontent static include and styles.content.imgtext.captionEach disabled
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Caption:
-
-  1. Content Caption
-
-- Title:
-
-  1. DAM Title
-
-- Alternative text:
-
-  1. DAM Alt
-  2. Content Alt
++----------------------+--------------------+
+| **Caption**          | 1. Content Caption |
++----------------------+--------------------+
+| **Title**            | 1. DAM Title       |
++----------------------+--------------------+
+| **Alternative text** | 1. DAM Alt         |
+|                      | 2. Content Alt     |
++----------------------+--------------------+
 
 Note that content title field was not used.
 
@@ -191,17 +183,13 @@ if available at time of migration as we cannot use content alt text otherwise)::
 TYPO3 4.5 default without dam_ttcontent static include
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Caption:
-
-  1. Content Caption
-
-- Title:
-
-  1. Content Title
-
-- Alternative text:
-
-  1. Content Alt
++----------------------+--------------------+
+| **Caption**          | 1. Content Caption |
++----------------------+--------------------+
+| **Title**            | 1. Content Title   |
++----------------------+--------------------+
+| **Alternative text** | 1. Content Alt     |
++----------------------+--------------------+
 
 Note that no DAM metadata was used, so it does not make much sense to fall back
 to FAL metadata, you will instead want to set migrated file references to an
@@ -216,37 +204,28 @@ Options to freeze texts at time of migration::
 TYPO3 6.2 default (just for comparison)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Caption:
-
-  1. Content Description
-  2. FAL Description
-
-- Title:
-
-  1. Content Title
-  2. FAL Title
-
-- Alternative text:
-
-  1. Content Alt
-  2. FAL Alt
-
++----------------------+------------------------+
+| **Caption**          | 1. Content Description |
+|                      | 2. FAL Description     |
++----------------------+------------------------+
+| **Title**            | 1. Content Title       |
+|                      | 2. FAL Title           |
++----------------------+------------------------+
+| **Alternative text** | 1. Content Alt         |
+|                      | 2. FAL Alt             |
++----------------------+------------------------+
 
 Running migration without options (same as before introduction of configurable chains)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Caption:
-
-  1. DAM Description
-
-- Title:
-
-  1. Content Title
-  2. DAM Title
-
-- Alternative text:
-
-  1. DAM Alt
++----------------------+------------------------+
+| **Caption**          | 1. DAM Description     |
++----------------------+------------------------+
+| **Title**            | 1. Content Title       |
+|                      | 2. DAM Title           |
++----------------------+------------------------+
+| **Alternative text** | 1. DAM Alt             |
++----------------------+------------------------+
 
 This is mainly provided for backwards-compatibility so default behaviour won't
 change compared to previous versions of this extension if called without
