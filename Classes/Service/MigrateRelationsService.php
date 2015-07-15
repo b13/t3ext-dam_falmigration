@@ -47,6 +47,13 @@ class MigrateRelationsService extends AbstractService {
      * @var string
      */
     protected $tablename = '';
+    
+    /**
+     * Layout to set on migrated content elements of CType "uploads".
+     * Layout 1 matches dam_filelinks behaviour (file type icon before links).
+     * @var int
+     */
+    protected $uploadsLayout = 1;
 
     /**
      * main function
@@ -103,21 +110,53 @@ class MigrateRelationsService extends AbstractService {
                 $newRelationsRecordUid = $this->database->sql_insert_id();
                 $this->updateReferenceIndex($newRelationsRecordUid);
 
-                // pageLayoutView-object needs image to be set something higher than 0
+                // update layout of CType uploads
+                if (($damRelation['tablenames'] === 'tt_content') && ($insertData['fieldname'] == 'media')) {
+                    // check if content element actually has CType uploads
+                    $contentElement = $this->database->exec_SELECTgetSingleRow(
+                            'CType',
+                            'tt_content',
+                            'uid = ' . $damRelation['uid_foreign']
+                    );
+
+                    $shouldSetLayout = (($this->uploadsLayout !== NULL) && ($contentElement !== NULL) && is_array($contentElement) && ($contentElement['CType'] == 'uploads'));
+
+                    if ($shouldSetLayout) {
+                        $this->database->exec_UPDATEquery(
+                                'tt_content',
+                                'uid = ' . $damRelation['uid_foreign'],
+                                array(
+                                        'layout' => $this->uploadsLayout
+                                )
+                        );
+                    }
+                }
+
                 if ($damRelation['tablenames'] === 'tt_content' ||
                         $damRelation['tablenames'] === 'pages' ||
                         $damRelation['tablenames'] === 'pages_language_overlay'
                 ) {
-                    if ($insertData['fieldname'] === 'image') {
-                        $tcaConfig = $GLOBALS['TCA']['tt_content']['columns']['image']['config'];
+                    // when using IRRE (should be default for image & media?) we
+                    // need to supply the actual number of images referenced
+                    // by the content element
+                    // QUESTION: we currently white-list only known fieldnames,
+                    //           can we fully rely on TCA to check if this is
+                    //           being necessary? (may apply to more fields than
+                    //           just image & media)
+                    $needsReferenceCount = (($insertData['fieldname'] === 'image') ||
+                                            ($insertData['fieldname'] === 'media'));
+                    if ($needsReferenceCount) {
+                        $tcaConfig = $GLOBALS['TCA']['tt_content']['columns'][$insertData['fieldname']]['config'];
                         if ($tcaConfig['type'] === 'inline') {
                             $this->database->exec_UPDATEquery(
                                     'tt_content',
                                     'uid = ' . $damRelation['uid_foreign'],
-                                    array('image' => 1)
+                                    array($insertData['fieldname'] => $numberImportedRelationsByContentElement[$insertData['uid_foreign']])
                             );
                         }
+                    }
 
+                    if ($insertData['fieldname'] === 'image') {
                         // migrate image_links from tt_content.
                         $linkFromContentRecord = $this->database->exec_SELECTgetSingleRow(
                                 'image_link,imagecaption',
@@ -283,4 +322,18 @@ class MigrateRelationsService extends AbstractService {
         return $this;
     }
 
+    /**
+     * Sets the layout ID to update "uploads" content elements with upon migration.
+     * @param mixed $uploadsLayout layout ID to set, NULL or 'null' to disable
+     * @return $this to allow for chaining
+     */
+    public function setUploadsLayout($uploadsLayout) {
+        if (($uploadsLayout === NULL) || (strtolower($uploadsLayout) === 'null')) {
+            $this->uploadsLayout = NULL;
+        } else {
+            $this->uploadsLayout = (int)$uploadsLayout;
+        }
+
+        return $this;
+    }
 }
