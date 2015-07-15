@@ -227,6 +227,7 @@ class MigrateRelationsService extends AbstractService {
                         //           any valid results and may require testing.
                         //           (we believe tt_content should be
                         //           $damRelation['tablenames'] instead)
+                        //           see GitHub issue #73
 
                         // migrate captions from tt_content upload elements
                         $ttContentFields = $this->database->exec_SELECTgetSingleRow(
