@@ -559,4 +559,21 @@ class DamMigrationCommandController extends AbstractCommandController {
 		$dataHandler->admin = TRUE;
 		$dataHandler->process_datamap();
 	}
+
+	/**
+	 * Migrate media:xxx style file references in link fields to file:xxx.
+	 * If optional table & field name is omitted, migration will be performed on
+	 * tt_content.header_link and tt_content.image_link. Should be run before
+	 * migrateRelations as it transfers image_link contents to FAL as-is.
+	 * 
+	 * @param string $table The table to work on. Default: `tt_content`.
+	 * @param string $field The field to work on. Default if table name is omitted: `header_link` and `image_link`.
+	 */
+	public function migrateLinksCommand($table = '', $field = '') {
+		/** @var Service\MigrateLinksService $service */
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateLinksService', $this);
+		$service->setTablename($table);
+		$service->setFieldname($field);
+		$this->outputMessage($service->execute());
+	}
 }

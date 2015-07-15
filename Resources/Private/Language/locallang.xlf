@@ -75,6 +75,30 @@
 			<trans-unit id="migrateDamTtnewsCommand" xml:space="preserve">
 				<source>Migrating dam_ttnews enriched tt_news records</source>
 			</trans-unit>
+			<trans-unit id="migrateLinksCommand" xml:space="preserve">
+				<source>Migrating media: to file: links for tt_content.header_link and tt_content.image_link</source>
+			</trans-unit>
+			<trans-unit id="migrateLinksCommandForField" xml:space="preserve">
+				<source>Migrating media: to file: links for table %s, field %s</source>
+			</trans-unit>
+			<trans-unit id="migrateLinksCommandMissingFile" xml:space="preserve">
+				<source>Unable to get FAL file for DAM record %d, skipping...</source>
+			</trans-unit>
+			<trans-unit id="migrateLinksCommandDoneHeadline" xml:space="preserve">
+				<source>Finished link migration</source>
+			</trans-unit>
+			<trans-unit id="migrateLinksCommandComplete" xml:space="preserve">
+				<source>Successfully migrated %d links</source>
+			</trans-unit>
+			<trans-unit id="migrateLinksCommandPartial" xml:space="preserve">
+				<source>Successfully migrated %d links, %d file references could not be resolved</source>
+			</trans-unit>
+			<trans-unit id="migrationStatusHeadline.migrateLinksCommandMissingParameter" xml:space="preserve">
+				<source>Missing parameters for link field migration</source>
+			</trans-unit>
+			<trans-unit id="migrationStatusMessage.migrateLinksCommandMissingParameter" xml:space="preserve">
+				<source>Please specify or omit both table name and field name, see help for details. Aborting.</source>
+			</trans-unit>
 			<trans-unit id="creatingCategory" xml:space="preserve">
 				<source>Creating category: %s</source>
 			</trans-unit>
