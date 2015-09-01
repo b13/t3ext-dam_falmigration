@@ -37,6 +37,20 @@ use TYPO3\CMS\DamFalmigration\Service;
 class DamMigrationCommandController extends AbstractCommandController {
 
 	/**
+	 * @param int $storageUid The UID of the storage (default: 1 Do not modify if you are unsure.)
+	 * @param int $recordLimit The amount of records to process in a single run. You can set this value if you have memory constraints.
+	 */
+	public function migrateDamRecordsToStorageCommand($storageUid = 1, $recordLimit = 999999) {
+		/** @var Service\MigrateToStorageService $service */
+		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateToStorageService', $this);
+		$service->setStorageUid((int)$storageUid);
+		$service->setRecordLimit((int)$recordLimit);
+		// Service needs re-initialization after setting properties
+		$service->initializeObject();
+		$this->outputMessage($service->execute());
+	}
+
+	/**
 	 * Migrates all DAM records to FAL.
 	 * A database field "_migrateddamuid" connects each FAL record to the original DAM record.
 	 *

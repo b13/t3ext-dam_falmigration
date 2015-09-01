@@ -29,6 +29,10 @@ The available migration tasks can be found under the *extbase* cliKey:
 
 	EXTENSION "DAM_FALMIGRATION":
 	-------------------------------------------------------------------------------
+	  dammigration:migratedamrecordstostorage  Ensures that all DAM files are stored
+	                                           in a FAL storage. A new subfolder
+	                                           "_migrated/dam" is created and files
+	                                           are copied and indexed.
 	  dammigration:migratedamrecords           Migrates all DAM records to FAL. A
 	                                           DB field "_migrateddamuid" connects
 	                                           each FAL record to the original DAM
