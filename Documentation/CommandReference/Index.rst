@@ -163,6 +163,27 @@ Options
 
 
 
+dam_falmigration:dammigration:migratedamrecordstostorage
+********************************************************
+
+**Ensures that all DAM files are stored in a FAL storage.**
+
+A new subfolder "_migrated/dam" is created and files are copied and indexed.
+
+
+
+Options
+^^^^^^^
+
+``--storage-uid``
+  The UID of the storage (default: 1 Do not modify if you are unsure.)
+``--record-limit``
+  The amount of records to process in a single run. You can set this value if you have memory constraints.
+
+
+
+
+
 dam_falmigration:dammigration:migratedamttnews
 **********************************************
 
