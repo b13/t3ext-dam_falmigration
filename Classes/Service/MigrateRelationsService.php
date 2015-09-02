@@ -102,7 +102,14 @@ class MigrateRelationsService extends AbstractService {
                 $numberImportedRelationsByContentElement[$insertData['uid_foreign']]++;
             }
 
-            if (!$this->doesFileReferenceExist($damRelation)) {
+            $fileReference = array(
+                'uid_local' => $damRelation['sys_file_uid'],
+                'uid_foreign' => $damRelation['uid_foreign'],
+                'tablenames' => $damRelation['tablenames'],
+                'ident' => $this->getColForFieldName($damRelation),
+            );
+
+            if (!$this->doesFileReferenceExist($fileReference)) {
                 $this->database->exec_INSERTquery(
                         'sys_file_reference',
                         $insertData
