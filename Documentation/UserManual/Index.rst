@@ -81,4 +81,4 @@ The available migration tasks can be found under the *extbase* cliKey:
 
 Please see the :ref:`Command Reference` for an explanation of the commands.
 
-In general you will want to execute the commands 'migratedamrecords' and 'migratedammetadata' first, then migrate any links using 'migratelinks'. After that you may wish to migrate the tx_dam_mm_ref table to sys_file_reference by running the 'migraterelations' command.
+In general you will want to execute the commands 'migratedamrecords' and 'migratedammetadata' first, then migrate any links using 'migratelinks'. After that you may wish to migrate the tx_dam_mm_ref table to sys_file_reference by running the 'migraterelations' command which will, among others, migrate images and files linked into content elements. Unfortunately, the way images were handled with DAM wasn't uniform, so you may need to figure out the correct field order to pass to 'migraterelations' via additional parameters, see :ref:`Command Reference` and :ref:`Chain Options` for details.

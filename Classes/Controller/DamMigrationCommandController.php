@@ -464,19 +464,53 @@ class DamMigrationCommandController extends AbstractCommandController {
 	 * Migrate relations to DAM records
 	 * Migrate relations to dam records that dam_ttcontent and dam_uploads introduced.
 	 *
+	 * The way image captions, title and alt attributes apply varies wildly across
+	 * TYPO3 installations, mainly depending on whether you used the static
+	 * include that came with dam_ttcontent and how you configured it. Please
+	 * read the documentation for more information. To support all
+	 * configurations, you can specify a chain for each image caption, title and
+	 * alt text which defines the priority of each field. Each chain consists
+	 * of one or more of the following options, separated by commas, earliest
+	 * non-empty field takes precedence over later ones:
+	 *
+	 * contentTitle     title line from content element
+	 * contentAlt       alt text line from content element
+	 * contentCaption   caption text line from content element
+	 * metaTitle        title from DAM meta data
+	 * metaAlt          alt text from DAM meta data
+	 * metaCaption      caption text from DAM meta data
+	 * metaDescription  description from DAM meta data
+	 * empty            ends chain with an empty string if nothing applied
+	 *                  (overriding FAL metadata with no output)
+	 * default          ends chain without overriding FAL metadata if nothing
+	 *                  applied (using central FAL metadata without copy)
+	 *
+	 * meta options cause DAM/FAL meta data to be copied to the content element,
+	 * so they override values entered later on central FAL record. Thus they
+	 * freeze input to the state at the time of migration, so later edits of
+	 * central metadata won't have any effect on migrated content element
+	 * references. Omit meta options and instead add default to the end of your
+	 * chain if you want FAL edits to have an effect on migrated content.
+	 *
 	 * It is highly recommended to update the ref index afterwards.
 	 *
 	 * @param string $tablename The tablename to migrate relations for
+	 * @param string $imageCaption Chain of fields to determine image captions. (Default: metaDescription,default)
+	 * @param string $imageTitle Chain of fields to determine image title. (Default: contentCaption,metaTitle,empty)
+	 * @param string $imageAlt Chain of fields to determine image alt texts. (Default: metaAlt,empty)
 	 * @param string $uploadsLayout The layout ID to set on migrated CType uploads ("file links") content elements. 1 shows file type icons (like dam_filelinks did), 2 shows a thumbnail preview instead, 0 shows nothing but link & caption. Set to 'null' if no action should be taken. Default: 1
 	 *
 	 * @return void
 	 */
-	public function migrateRelationsCommand($tablename = '', $uploadsLayout = '1') {
+	public function migrateRelationsCommand($tablename = '', $imageCaption = 'metaDescription,default', $imageTitle = 'contentCaption,metaTitle,empty', $imageAlt = 'metaAlt,empty', $uploadsLayout = '1') {
 		$tablename = preg_replace('/[^a-zA-Z0-9_-]/', '', $tablename);
 
 		/** @var Service\MigrateRelationsService $service */
 		$service = $this->objectManager->get('TYPO3\\CMS\\DamFalmigration\\Service\\MigrateRelationsService', $this);
 		$service->setTablename($tablename);
+		$service->setChainImageCaption($imageCaption);
+		$service->setChainImageTitle($imageTitle);
+		$service->setChainImageAlt($imageAlt);
 		$service->setUploadsLayout($uploadsLayout);
 		$this->outputMessage($service->execute());
 	}
