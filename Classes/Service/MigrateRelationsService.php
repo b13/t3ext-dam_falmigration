@@ -27,6 +27,7 @@ namespace TYPO3\CMS\DamFalmigration\Service;
  *  This copyright notice MUST APPEAR in all copies of the script!
  ***************************************************************/
 use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
@@ -313,38 +314,42 @@ class MigrateRelationsService extends AbstractService {
         return $record['pid'] ?: 0;
     }
 
-    /**
-     * After a migration of tx_dam -> sys_file the col _migrateddamuid is
-     * filled with dam uid Now we can search in dam relations for dam records
-     * which have already been migrated to sys_file
-     *
-     * @return \mysqli_result
-     */
-    protected function execSelectDamReferencesWhereSysFileExists() {
-        $where = 'tx_dam_mm_ref.tablenames <> ""';
-        if ($this->tablename !== '') {
-            $where = 'tx_dam_mm_ref.tablenames = "' . $this->tablename . '"';
-        }
+	/**
+	 * After a migration of tx_dam -> sys_file the col _migrateddamuid is
+	 * filled with dam uid Now we can search in dam relations for dam records
+	 * which have already been migrated to sys_file
+	 *
+	 * @return \mysqli_result
+	 */
+	protected function execSelectDamReferencesWhereSysFileExists() {
+		$where = 'tx_dam_mm_ref.tablenames <> ""';
+		if ($this->tablename !== '') {
+			$where = 'tx_dam_mm_ref.tablenames = "' . $this->tablename . '"';
+		}
 
-        return $this->database->exec_SELECTquery(
-                'tx_dam_mm_ref.*,
+		$selectFields = 'tx_dam_mm_ref.*,
 			sys_file_metadata.title,
 			sys_file_metadata.description,
 			sys_file_metadata.alternative,
-			sys_file_metadata.caption,
-			sys_file.uid as sys_file_uid',
-                'tx_dam_mm_ref
+			sys_file.uid as sys_file_uid';
+		if (ExtensionManagementUtility::isLoaded('filemetadata')) {
+			$selectFields .= ', sys_file_metadata.caption';
+		}
+
+		return $this->database->exec_SELECTquery(
+			$selectFields,
+			'tx_dam_mm_ref
 			JOIN sys_file ON
 				sys_file._migrateddamuid = tx_dam_mm_ref.uid_local
 			JOIN sys_file_metadata ON
 				sys_file.uid = sys_file_metadata.file
 				',
-                $where,
-                '',
-                'tx_dam_mm_ref.sorting ASC,tx_dam_mm_ref.sorting_foreign ASC',
-                (int)$this->getRecordLimit()
-        );
-    }
+			$where,
+			'',
+			'tx_dam_mm_ref.sorting ASC,tx_dam_mm_ref.sorting_foreign ASC',
+			(int)$this->getRecordLimit()
+		);
+	}
 
     /**
      * col for fieldname was saved in col "ident"
@@ -426,9 +431,12 @@ class MigrateRelationsService extends AbstractService {
         // assign DAM meta data fields
         // fields are actually coming from migrated sys_file_metadata
         $out[self::CHAIN_META_ALT] = $damRelation['alternative'];
-        $out[self::CHAIN_META_CAPTION] = $damRelation['caption'];
         $out[self::CHAIN_META_DESCRIPTION] = $damRelation['description'];
         $out[self::CHAIN_META_TITLE] = $damRelation['title'];
+		$out[self::CHAIN_META_CAPTION] = '';
+		if (ExtensionManagementUtility::isLoaded('filemetadata')) {
+			$out[self::CHAIN_META_CAPTION] = $damRelation['caption'];
+		}
 
         return $out;
     }
