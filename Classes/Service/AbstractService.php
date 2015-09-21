@@ -159,6 +159,7 @@ abstract class AbstractService {
 			 r.uid_foreign,
 			 r.tablenames,
 			 r.sorting,
+			 r.sorting_foreign,
 			 r.ident,
 			 d.uid as dam_uid,
 			 d.file_name,
