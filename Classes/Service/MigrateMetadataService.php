@@ -107,11 +107,11 @@ class MigrateMetadataService extends AbstractService {
 	protected $isInstalledFileMetadata = FALSE;
 
 	/**
-	 * If the media extension is installed, this value will be true
+	 * If the media extension in version less than 3 is installed, this value will be true
 	 *
 	 * @var boolean
 	 */
-	protected $isInstalledMedia = FALSE;
+	protected $isInstalledLegacyMedia = FALSE;
 
 	/**
 	 * Main method
@@ -133,7 +133,7 @@ class MigrateMetadataService extends AbstractService {
 		$this->controller->infoMessage('Found ' . $total . ' migrated sys_file records');
 
 		$this->isInstalledFileMetadata = ExtensionManagementUtility::isLoaded('filemetadata');
-		$this->isInstalledMedia = ExtensionManagementUtility::isLoaded('media');
+    $this->isInstalledLegacyMedia = ExtensionManagementUtility::isLoaded('media') && intval(ExtensionManagementUtility::getExtensionVersion('media')) < 3;
 
 		while ($record = $this->database->sql_fetch_assoc($res)) {
 			$this->database->exec_UPDATEquery(
@@ -206,8 +206,8 @@ class MigrateMetadataService extends AbstractService {
 			'tstamp' => time(),
 		);
 
-		// add additional columns if ext:media is installed
-		if ($this->isInstalledMedia) {
+		// add additional columns if ext:media below version 3 is installed
+		if ($this->isInstalledLegacyMedia) {
 			foreach ($this->mediaColumnMapping as $damColName => $metaColName) {
 				$updateData[$metaColName] = $damRecord[$damColName];
 			}
